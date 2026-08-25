@@ -22,6 +22,13 @@ namespace VikingSettlements.Party
         private const float GravelyWoundedFraction = 0.25f;
         private const float RecoveredFraction = 0.5f;
         private const float TickInterval = 0.5f;
+        private const float DefensiveMemberRange = 22f;
+        private const float DefensiveOwnerRange = 28f;
+        private const float AggressiveRange = 40f;
+        private const float RetaliationRange = 45f;
+        private const float RetaliationMemorySeconds = 8f;
+        private const float DefensiveLeash = 42f;
+        private const float AggressiveLeash = 65f;
 
         private ZNetView _nview;
         private Character _character;
@@ -29,6 +36,8 @@ namespace VikingSettlements.Party
         private SettlerRecruitable _settler;
         private SettlerDirectiveState _directives;
         private float _lastDamageTime = -1000f;
+        private Character _recentAttacker;
+        private float _recentAttackerTime = -1000f;
         private float _nextTick;
         private bool _autoFellBack;
         private bool _formationArrived;
@@ -244,19 +253,80 @@ namespace VikingSettlements.Party
                 }
                 return;
             }
-            if (CombatStance != HirdCombatStance.Aggressive
-                || (_ai.m_targetCreature != null && !_ai.m_targetCreature.IsDead()))
+
+            var owner = FindOwnerPlayer();
+            if (owner == null)
             {
                 return;
             }
 
-            var owner = FindOwnerPlayer();
-            var target = PartySystem.FindNearestEnemy(owner, transform.position, 35f);
-            if (target != null)
+            // Keep a live hostile target. MonsterAI handles the actual weapon,
+            // movement and attack animation once we give it a creature.
+            var target = _ai.m_targetCreature;
+            var orderedAttack = _directives != null
+                && _directives.Kind == SettlerDirectiveKind.Attack;
+            if (target != null && !target.IsDead()
+                && BaseAI.IsEnemy(owner, target)
+                && (orderedAttack || WithinCombatLeash(target, owner)))
             {
-                _ai.m_targetCreature = target;
-                _ai.Alert();
+                return;
             }
+            _ai.m_targetCreature = null;
+
+            // Retaliation has first priority. This closes the half-second scan
+            // gap when a member is struck and also lets a defensive Hird finish
+            // reacting to an attacker just outside its normal guard bubble.
+            if (_recentAttacker != null
+                && Time.time - _recentAttackerTime <= RetaliationMemorySeconds
+                && !_recentAttacker.IsDead()
+                && BaseAI.IsEnemy(owner, _recentAttacker)
+                && Vector3.Distance(transform.position, _recentAttacker.transform.position)
+                    <= RetaliationRange)
+            {
+                Engage(_recentAttacker);
+                return;
+            }
+
+            if (CombatStance == HirdCombatStance.Aggressive)
+            {
+                target = PartySystem.FindNearestEnemy(owner, transform.position, AggressiveRange)
+                    ?? PartySystem.FindNearestEnemy(owner, owner.transform.position, AggressiveRange);
+            }
+            else
+            {
+                // Defensive is the default stance: protect the owner and then
+                // the member's immediate space, but do not go hunting broadly.
+                target = PartySystem.FindNearestEnemy(
+                    owner, owner.transform.position, DefensiveOwnerRange)
+                    ?? PartySystem.FindNearestEnemy(owner, transform.position, DefensiveMemberRange);
+            }
+
+            if (target != null) Engage(target); else _ai.SetAlerted(false);
+        }
+
+        private bool WithinCombatLeash(Character target, Player owner)
+        {
+            if (target == null || owner == null)
+            {
+                return false;
+            }
+            var anchor = Stance == PartyStance.Hold && _directives != null
+                ? _directives.Target
+                : owner.transform.position;
+            var leash = CombatStance == HirdCombatStance.Aggressive
+                ? AggressiveLeash
+                : DefensiveLeash;
+            return Vector3.Distance(anchor, target.transform.position) <= leash;
+        }
+
+        private void Engage(Character target)
+        {
+            if (_ai == null || target == null || target.IsDead())
+            {
+                return;
+            }
+            _ai.m_targetCreature = target;
+            _ai.Alert();
         }
 
         // Out of combat, members recover on their own: stakes live inside the
@@ -319,6 +389,18 @@ namespace VikingSettlements.Party
         private void OnDamaged(float damage, Character attacker)
         {
             _lastDamageTime = Time.time;
+            var owner = FindOwnerPlayer();
+            if (attacker == null || owner == null || !BaseAI.IsEnemy(owner, attacker))
+            {
+                return;
+            }
+            _recentAttacker = attacker;
+            _recentAttackerTime = Time.time;
+            if (IsActiveMember && Stance != PartyStance.Fallback
+                && CombatStance != HirdCombatStance.Passive)
+            {
+                Engage(attacker);
+            }
         }
 
         internal void SetStance(PartyStance stance, Player owner)

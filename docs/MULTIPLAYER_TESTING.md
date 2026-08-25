@@ -15,6 +15,10 @@ mutations.
 2. Open the console with F5 and run `devcommands`.
 3. Run `hnh_test enable`.
 4. Press F7, or run `hnh_test` again.
+
+The **Object** dropdown can spawn Settlers, Seers or one Camp-tier
+Hearthstone. A test Hearthstone is automatically founded by the host; NPC-only
+dropdowns are ignored and the preview says so before spawning.
 5. Run `hnh_test disable` when testing is finished.
 
 The hotkey can be changed with `Development.TestPanelHotkey`. Public and

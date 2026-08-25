@@ -61,3 +61,9 @@ last known positions on the map.
 | 0.8 | Equipment, skills and progression |
 | 0.9 | Blueprint construction and builder AI |
 | 1.0 | Morale, raids, balance and multiplayer hardening |
+| 1.1 | Multiple player settlements, couriers and physical caravans |
+| 1.2 | Living NPC clan settlements, reputation, trade, alliances, rivalries, tribute, war and joint defence |
+
+The 1.2 diplomacy milestone is deliberately design-only at present. Its NPC
+settlements should be physical places in the world, with persistent political
+relationships and alliance choices rather than a menu-only faction system.

@@ -16,7 +16,7 @@ namespace VikingSettlements.Development
         private const float PanelWidth = 920f;
         private const float PanelHeight = 820f;
 
-        private static readonly string[] UnitNames = { "Settler", "Seer" };
+        private static readonly string[] ObjectNames = { "Settler", "Seer", "Hearthstone" };
         private static readonly string[] StateNames = { "Wild", "Hird follower", "Assigned settler" };
         private static readonly SettlerState[] States =
             { SettlerState.Wild, SettlerState.Following, SettlerState.Assigned };
@@ -106,10 +106,10 @@ namespace VikingSettlements.Development
                 TextAnchor.UpperLeft, false, 48f);
 
             Section("Configure the next spawn", -120f);
-            FieldLabel("UNIT", -280f, -153f);
+            FieldLabel("OBJECT", -280f, -153f);
             FieldLabel("ALLEGIANCE", 0f, -153f);
             FieldLabel("COUNT", 280f, -153f);
-            DropDown(UnitNames, _unitIndex, -280f, -184f, value => _unitIndex = value);
+            DropDown(ObjectNames, _unitIndex, -280f, -184f, value => _unitIndex = value);
             DropDown(StateNames, _stateIndex, 0f, -184f, value => _stateIndex = value);
             DropDown(Counts.Select(value => value.ToString()).ToArray(), _countIndex,
                 280f, -184f, value => _countIndex = value);
@@ -155,9 +155,9 @@ namespace VikingSettlements.Development
 
             Section("Cleanup", -682f);
             Button("DISBAND ALL HIRD", -240f, -721f, DisbandAllHird, 220f, 40f);
-            Button("DESPAWN TEST UNITS", 0f, -721f, DespawnTestUnits, 220f, 40f);
+            Button("DESPAWN TEST OBJECTS", 0f, -721f, DespawnTestObjects, 220f, 40f);
             Button("Close", 240f, -721f, Close, 180f, 40f);
-            Label("Despawn removes only units created by this panel. Disband releases your entire local Hird.",
+            Label("Despawn removes only units and Hearthstones created by this panel. Disband releases your entire local Hird.",
                 -405f, -772f, 14, new Color(0.78f, 0.73f, 0.63f), 810f,
                 TextAnchor.MiddleCenter, false, 24f);
         }
@@ -230,11 +230,16 @@ namespace VikingSettlements.Development
 
         private static string SpawnPreview()
         {
+            if (_unitIndex == 2)
+            {
+                return "Next: 1 × Hearthstone (Camp tier)\n"
+                    + "Founder: you • count, level, allegiance, job and equipment ignored";
+            }
             var state = States[Mathf.Clamp(_stateIndex, 0, States.Length - 1)];
             var job = state == SettlerState.Assigned
                 ? JobNames()[Mathf.Clamp(_jobIndex, 0, SettlerRecruitable.JobCount - 1)]
                 : "no settlement job";
-            return $"Next: {Counts[_countIndex]} × {LevelNames[_levelIndex]} {UnitNames[_unitIndex]}\n"
+            return $"Next: {Counts[_countIndex]} × {LevelNames[_levelIndex]} {ObjectNames[_unitIndex]}\n"
                 + $"{StateNames[_stateIndex]} • {KitNames[_kitIndex]} • {job}";
         }
 
@@ -244,7 +249,8 @@ namespace VikingSettlements.Development
             var test = units.Count(unit => unit.IsTestSpawned);
             var hird = units.Count(unit => unit.State == SettlerState.Following
                 && unit.GetComponent<PartyMember>()?.IsActiveMember == true);
-            return $"Loaded controllable: {units.Count}    Test-spawned: {test}    Local Hird: {hird}    "
+            var hearthstones = PlayerSettlement.Instances.Count(settlement => settlement.IsTestSpawned);
+            return $"Loaded controllable: {units.Count}    Test-spawned: {test}    Test Hearthstones: {hearthstones}    Local Hird: {hird}    "
                 + $"Formation: {PartySystem.Formation}    Combat: {PartySystem.CombatStance}";
         }
 
@@ -279,6 +285,11 @@ namespace VikingSettlements.Development
         {
             var player = Player.m_localPlayer;
             if (!TestAuthority.IsHost || player == null) return;
+            if (_unitIndex == 2)
+            {
+                SpawnHearthstone(player);
+                return;
+            }
             var state = States[_stateIndex];
             var settlement = state == SettlerState.Assigned
                 ? PlayerSettlement.FindOwnedContaining(player.transform.position, player.GetPlayerID()) : null;
@@ -309,6 +320,30 @@ namespace VikingSettlements.Development
                 ApplyKit(unit.GetComponent<SettlerEquipment>(), _kitIndex);
                 _selected = unit;
             }
+            Rebuild();
+        }
+
+        private static void SpawnHearthstone(Player player)
+        {
+            var prefab = PrefabManager.Instance.GetPrefab(SettlementPieces.Banner);
+            if (prefab == null)
+            {
+                player.Message(MessageHud.MessageType.Center, "Hearthstone prefab is unavailable.");
+                return;
+            }
+            var position = SpawnPosition(player, 0, 1);
+            var gameObject = UnityEngine.Object.Instantiate(prefab, position,
+                Quaternion.LookRotation(-player.transform.forward, Vector3.up));
+            var settlement = gameObject.GetComponent<PlayerSettlement>();
+            if (settlement == null || !settlement.ConfigureForTest(player))
+            {
+                if (ZNetScene.instance != null) ZNetScene.instance.Destroy(gameObject);
+                else UnityEngine.Object.Destroy(gameObject);
+                player.Message(MessageHud.MessageType.Center, "Could not claim the test Hearthstone.");
+                return;
+            }
+            player.Message(MessageHud.MessageType.Center,
+                "Spawned a Camp-tier Hearthstone founded by you.");
             Rebuild();
         }
 
@@ -448,18 +483,26 @@ namespace VikingSettlements.Development
             Rebuild();
         }
 
-        private static void DespawnTestUnits()
+        private static void DespawnTestObjects()
         {
             var player = Player.m_localPlayer;
             var units = Candidates().Where(unit => unit.IsTestSpawned).ToList();
-            var removed = 0;
+            var removedUnits = 0;
             foreach (var unit in units)
             {
-                if (unit.DespawnForTest(player)) removed++;
+                if (unit.DespawnForTest(player)) removedUnits++;
+            }
+            var hearthstones = PlayerSettlement.Instances
+                .Where(settlement => settlement.IsTestSpawned).ToList();
+            var removedHearthstones = 0;
+            foreach (var settlement in hearthstones)
+            {
+                if (settlement.DespawnForTest(player)) removedHearthstones++;
             }
             _selected = null;
             player?.Message(MessageHud.MessageType.Center,
-                $"Despawned {removed} loaded test unit{(removed == 1 ? "" : "s")}.");
+                $"Despawned {removedUnits} test unit{(removedUnits == 1 ? "" : "s")} and "
+                + $"{removedHearthstones} test Hearthstone{(removedHearthstones == 1 ? "" : "s")}.");
             Rebuild();
         }
 

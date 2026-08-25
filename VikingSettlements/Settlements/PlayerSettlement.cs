@@ -28,6 +28,7 @@ namespace VikingSettlements.Settlements
         private const int NameCharLimit = 30;
         private const string RegisterUpdateRpc = "HnH_RegisterUpdate";
         private const string RegisterRemoveRpc = "HnH_RegisterRemove";
+        private const string TestSpawnedKey = "hnh_test_hearthstone";
 
         public static readonly List<PlayerSettlement> Instances = new List<PlayerSettlement>();
 
@@ -191,6 +192,45 @@ namespace VikingSettlements.Settlements
                 var stored = _nview.GetZDO().GetLong(HearthZdoKeys.HearthOwner);
                 return stored != 0L || _piece == null ? stored : _piece.GetCreator();
             }
+        }
+
+        internal bool IsTestSpawned => _nview != null && _nview.IsValid()
+            && _nview.GetZDO().GetBool(TestSpawnedKey);
+
+        /// <summary>Claims a panel-spawned Hearthstone for the listen-server host.</summary>
+        internal bool ConfigureForTest(Player player)
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost || player == null
+                || _nview == null || !_nview.IsValid())
+            {
+                return false;
+            }
+            _nview.ClaimOwnership();
+            _nview.GetZDO().Set(HearthZdoKeys.HearthOwner, player.GetPlayerID());
+            _nview.GetZDO().Set(HearthZdoKeys.HearthTier, 1);
+            _nview.GetZDO().Set(TestSpawnedKey, true);
+            RefreshPlayerBaseArea();
+            return true;
+        }
+
+        internal bool DespawnForTest(Player player)
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost || player == null
+                || !IsTestSpawned || OwnerId != player.GetPlayerID()
+                || _nview == null || !_nview.IsValid())
+            {
+                return false;
+            }
+            _nview.ClaimOwnership();
+            if (ZNetScene.instance != null)
+            {
+                ZNetScene.instance.Destroy(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
+            return true;
         }
 
         /// <summary>Camp (1) through Jarl's Seat (7), upgraded explicitly by biome materials.</summary>

@@ -423,7 +423,7 @@ To keep iteration bearable, temporarily set `WorkIntervalSeconds = 10` and
 
 | What to test | How |
 |---|---|
-| Hearth & Hird test panel | Host/single-player: `hnh_test enable`, then press `F7`. Configure unit, allegiance, count, level, job and equipment in dropdowns, review the preview, then Spawn. The panel can disband the Hird or safely despawn only its own test units. See [the multiplayer test guide](docs/MULTIPLAYER_TESTING.md) |
+| Hearth & Hird test panel | Host/single-player: `hnh_test enable`, then press `F7`. Configure an NPC or Hearthstone in dropdowns, review the preview, then Spawn. The panel can disband the Hird or safely despawn only its own test NPCs and Hearthstones. See [the multiplayer test guide](docs/MULTIPLAYER_TESTING.md) |
 | Wild settlements | `vs_spawn village` (also `outpost`, `steading`) — check buildings sit on the ground and settlers are alive |
 | Recruiting | `spawn Coins 200`, walk up to a settler, look for the "Recruit" hover text, press `E` |
 | Settlement banner | `spawn Wood 50`, `spawn FineWood 20`, stand near a workbench, hammer → Misc |

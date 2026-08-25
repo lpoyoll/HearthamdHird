@@ -1,5 +1,20 @@
 # Changelog
 
+### Hearth & Hird test muster 0.3.2 (development branch)
+
+- Fixed the default Defensive combat stance so Hird members acquire hostiles
+  near themselves or their owner; direct attackers are immediately retained
+  as a short-lived retaliation target. Aggressive still uses a wider search,
+  while Passive and Retreat remain strict non-engagement modes.
+- Added Hearthstone to the F7 spawn-object dropdown. The preview makes clear
+  which NPC-only settings are ignored, and spawning creates one Camp-tier
+  Hearthstone owned by the listen-server host.
+- Expanded safe test cleanup to remove panel-spawned Hearthstones as well as
+  panel-spawned NPCs, without touching normal world objects.
+- Logged physical NPC clan settlements and diplomacy—including alliances,
+  trade, rivalry, tribute, war and joint defence—as a future 1.2 milestone;
+  no diplomacy system is included in this build.
+
 ### Hearth & Hird test muster 0.3.1 (development branch)
 
 - Rebuilt the F7 test panel around dropdowns for unit type, allegiance, count,
