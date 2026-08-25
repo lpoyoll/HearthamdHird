@@ -26,6 +26,17 @@ namespace HearthAndHird.Network
         internal const string DirectiveWorkId = "hnh_directive_work";
         internal const string DirectiveIssuer = "hnh_directive_issuer";
 
+        internal const string TaskState = "hnh_task_state";
+        internal const string TaskDetail = "hnh_task_detail";
+        internal const string TaskTarget = "hnh_task_target";
+        internal const string TaskUpdated = "hnh_task_updated";
+        internal const string WorkCarryPrefab = "hnh_work_carry_prefab";
+        internal const string WorkCarryCount = "hnh_work_carry_count";
+
+        internal const string ForestryRadius = "hnh_forestry_radius";
+        internal const string ForestryEnabled = "hnh_forestry_enabled";
+        internal const string WorkPieceTestSpawned = "hnh_test_work_piece";
+
         internal const string HirdCombatStance = "hnh_hird_combat_stance";
         internal const string HirdFormation = "hnh_hird_formation";
 

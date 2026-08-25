@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HearthAndHird.Settlements;
 using UnityEngine;
 
 namespace VikingSettlements.Npcs
@@ -47,7 +48,28 @@ namespace VikingSettlements.Npcs
             switch (settler.Job)
             {
                 case SettlerJob.Lumberjack:
-                    lines.Add(Storage(home, "Wood"));
+                    lines.Add(new Line
+                    {
+                        Token = "$hnh_need_forestry",
+                        Met = ForestryZone.FindFor(home) != null,
+                    });
+                    lines.Add(new Line
+                    {
+                        Token = "$hnh_need_timber_store",
+                        Met = TimberStockpile.FindNearest(home, home) != null,
+                    });
+                    break;
+                case SettlerJob.Hauler:
+                    lines.Add(new Line
+                    {
+                        Token = "$hnh_need_timber_store",
+                        Met = TimberStockpile.FindNearest(home, home) != null,
+                    });
+                    lines.Add(new Line
+                    {
+                        Token = "$hnh_need_source_timber",
+                        Met = HasSourceTimber(home),
+                    });
                     break;
                 case SettlerJob.Farmer:
                     lines.Add(Storage(home, "Carrot"));
@@ -210,6 +232,32 @@ namespace VikingSettlements.Npcs
                     break;
             }
             return lines;
+        }
+
+        private static bool HasSourceTimber(Vector3 home)
+        {
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(home);
+            foreach (var container in Object.FindObjectsOfType<Container>())
+            {
+                if (container == null || container.GetComponent<TimberStockpile>() != null
+                    || Vector3.Distance(container.transform.position, home) > radius)
+                {
+                    continue;
+                }
+                var inventory = container.GetInventory();
+                if (inventory != null && (Count(inventory, "Wood") > 0
+                    || Count(inventory, "FineWood") > 0 || Count(inventory, "RoundLog") > 0))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        private static int Count(Inventory inventory, string prefabName)
+        {
+            var sharedName = SettlerWork.SharedName(prefabName);
+            return sharedName != null ? inventory.CountItems(sharedName) : 0;
         }
 
         /// <summary>Minutes until this settler's next meal, or -1 when not applicable.</summary>

@@ -15,7 +15,7 @@ namespace VikingSettlements
     {
         public const string PluginGUID = "com.abjumb.vikingsettlements";
         public const string PluginName = "Hearth & Hird";
-        public const string PluginVersion = "1.13.5";
+        public const string PluginVersion = "1.14.0";
 
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
 
@@ -24,6 +24,7 @@ namespace VikingSettlements
         private void Awake()
         {
             ModConfig.Init(Config);
+            HearthAndHird.Jobs.PhysicalJobBootstrap.Register();
             AddLocalizations();
             _harmony = new Harmony(PluginGUID);
             _harmony.PatchAll(Assembly.GetExecutingAssembly());
@@ -111,6 +112,16 @@ namespace VikingSettlements
                 { "vs_settlementfull", "This settlement is full" },
                 { "vs_job_villager", "Villager" },
                 { "vs_job_lumberjack", "Lumberjack" },
+                { "hnh_job_hauler", "Hauler" },
+                { "hnh_forestry_marker", "Forestry Marker" },
+                { "hnh_forestry_marker_desc", "Marks mature trees for physical lumberjack work. Use to cycle its radius; hold Shift while using to enable or pause the zone." },
+                { "hnh_timber_store", "Timber Store" },
+                { "hnh_timber_store_desc", "Designated destination for wood physically carried by lumberjacks and haulers." },
+                { "hnh_forestry_active", "Forestry active" },
+                { "hnh_forestry_paused", "Forestry paused" },
+                { "hnh_need_forestry", "Active Forestry Marker with mature trees" },
+                { "hnh_need_timber_store", "Timber Store with free space" },
+                { "hnh_need_source_timber", "Timber in an ordinary source chest" },
                 { "vs_job_farmer", "Farmer" },
                 { "vs_job_builder", "Builder" },
                 { "vs_job_blacksmith", "Blacksmith" },

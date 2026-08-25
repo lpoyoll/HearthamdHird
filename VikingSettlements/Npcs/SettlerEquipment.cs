@@ -25,6 +25,7 @@ namespace VikingSettlements.Npcs
         private float _nextTick;
         private readonly ItemDrop.ItemData[] _applied = new ItemDrop.ItemData[SlotCount];
         private readonly string[] _appliedSpec = new string[SlotCount];
+        private ItemDrop.ItemData _workTool;
 
         private void Awake()
         {
@@ -284,12 +285,70 @@ namespace VikingSettlements.Npcs
 
             for (var slot = 0; slot < SlotCount; slot++)
             {
+                if (slot == 0 && _workTool != null)
+                {
+                    continue; // restore changed combat gear when the worker puts the tool away
+                }
                 var spec = _nview.GetZDO().GetString(SlotKeys[slot]);
                 if (spec != (_appliedSpec[slot] ?? ""))
                 {
                     Apply(slot, spec);
                     RecalcArmor();
                 }
+            }
+        }
+
+        /// <summary>
+        /// Visibly equips a temporary real tool without overwriting the
+        /// settler's gifted combat weapon in ZDO state.
+        /// </summary>
+        internal bool EquipWorkTool(string prefabName)
+        {
+            if (_humanoid == null || ObjectDB.instance == null)
+            {
+                return false;
+            }
+            if (_workTool != null && _workTool.m_dropPrefab != null
+                && _workTool.m_dropPrefab.name == prefabName)
+            {
+                if (!_humanoid.IsItemEquiped(_workTool))
+                {
+                    _humanoid.EquipItem(_workTool, false);
+                }
+                return true;
+            }
+            ClearWorkTool();
+            var prefab = ObjectDB.instance.GetItemPrefab(prefabName);
+            var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
+            if (drop == null)
+            {
+                return false;
+            }
+            if (_applied[0] != null)
+            {
+                _humanoid.UnequipItem(_applied[0], false);
+            }
+            _workTool = drop.m_itemData.Clone();
+            _workTool.m_dropPrefab = prefab;
+            _workTool.m_stack = 1;
+            _workTool.m_durability = _workTool.GetMaxDurability();
+            _humanoid.GetInventory().AddItem(_workTool);
+            return _humanoid.EquipItem(_workTool, false);
+        }
+
+        internal void ClearWorkTool()
+        {
+            if (_workTool == null || _humanoid == null)
+            {
+                return;
+            }
+            _humanoid.UnequipItem(_workTool, false);
+            _humanoid.GetInventory().RemoveItem(_workTool);
+            _workTool = null;
+            _nextTick = 0f;
+            if (_applied[0] != null)
+            {
+                _humanoid.EquipItem(_applied[0], false);
             }
         }
 
@@ -396,6 +455,7 @@ namespace VikingSettlements.Npcs
             {
                 return;
             }
+            ClearWorkTool();
             var zdo = _nview.GetZDO();
             for (var slot = 0; slot < SlotCount; slot++)
             {

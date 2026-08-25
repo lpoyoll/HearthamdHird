@@ -16,14 +16,14 @@
 </p>
 
 <p align="center">
-  <a href="releases/HearthAndHird-v1.13.5.zip"><strong>Download development build 1.13.5</strong></a>
+  <a href="releases/HearthAndHird-v1.14.0.zip"><strong>Download development build 1.14.0</strong></a>
   · <a href="docs/ROADMAP.md">Roadmap</a>
   · <a href="docs/MULTIPLAYER_TESTING.md">Multiplayer testing</a>
   · <a href="docs/UPSTREAMS.md">Licences and provenance</a>
 </p>
 
 > [!IMPORTANT]
-> Hearth & Hird is under active development. Version **1.13.5** is a playable
+> Hearth & Hird is under active development. Version **1.14.0** is a playable
 > foundation and test build, not the finished settlement simulation. Back up
 > important worlds before testing development releases.
 
@@ -42,7 +42,7 @@ The same principle applies to hauling, mining, farming, construction, patrols
 and production chains. Distant settlements may use lower-frequency simulation
 for performance, but work around the player should remain visible and real.
 
-## What works in 1.13.5
+## What works in 1.14.0
 
 ### Human settlers
 
@@ -86,6 +86,22 @@ for performance, but work around the player should remain visible and real.
 - The terrain survey rejects water, existing villages and unsuitable slopes.
 - Test settlements can be placed near the host or near the world's first spawn.
 
+### Physical Lumberjack and Hauler proof
+
+- Build a **Forestry Marker** from the hammer's Misc category and cycle its
+  15/25/40 metre work radius with E; Shift+E pauses or enables it.
+- Build a **Timber Store** as the designated physical destination for wood.
+- Assigned Lumberjacks reserve a mature marked tree, walk to it without routine
+  teleporting, visibly equip an axe, fell it and process its real fallen logs.
+- Workers collect actual Wood, Fine Wood or Core Wood drops into persistent
+  carrying inventory, walk them home and deposit them into the Timber Store.
+- Strength increases carrying capacity, stuck workers release their target and
+  replan, and interrupted work retains cargo across combat and save/load.
+- Assigned Haulers physically move timber from ordinary settlement chests to
+  the nearest Timber Store.
+- The current ZDO owner alone advances task AI and inventory mutation, keeping
+  the system suitable for multiplayer testing.
+
 ### Development test menu
 
 The host-only **F7 Test Muster** is designed to make iteration possible without
@@ -96,6 +112,8 @@ hours of normal progression:
 - Spawn a standalone Hearthstone.
 - Spawn any settlement tier from Camp through Jarl's Seat.
 - Select placement near you or near the first spawn.
+- Spawn Forestry Markers, Timber Stores and mature test trees.
+- Assign Lumberjack or Hauler directly and watch live task/cargo diagnostics.
 - Inspect and change loaded settlers, combat orders and equipment.
 - Reset temporary village hostility, disband the local hird or remove all
   loaded test objects created by the menu.
@@ -113,25 +131,18 @@ networked objects but cannot perform development mutations.
 
 ## What comes next
 
-The next release target is the critical **0.4 physical-work foundation**:
-
-1. A lumberjack selects a valid marked tree.
-2. They walk to it without teleporting.
-3. They equip and animate a real axe.
-4. The tree and logs are physically processed.
-5. Dropped wood enters the NPC's real carrying inventory.
-6. The NPC walks to a designated timber store and deposits it.
-7. A hauler can move that stock into a wider production chain.
-
-Once that loop works reliably in multiplayer, it becomes the reusable job
-framework for mining, gathering, farming, building and settlement logistics.
+The critical **0.4 physical-work foundation is now implemented for testing**.
+The immediate work is in-game and two-player hardening: difficult terrain,
+ownership hand-off, multiple workers competing for targets, full stores and
+combat interruption. Once that loop is reliable, the same framework becomes
+the basis for mining, gathering, farming, building and settlement logistics.
 
 | Design milestone | Status |
 |---|---|
 | 0.1 Human NPC foundation | Implemented; hardening continues |
 | 0.2 Recruitment and Hird Horn | Implemented; command/AI tuning continues |
 | 0.3 Hearthstone, ownership and beds | Implemented foundation |
-| **0.4 Physical Lumberjack and Hauler** | **Next** |
+| **0.4 Physical Lumberjack and Hauler** | **Implemented; multiplayer/pathing hardening** |
 | 0.5 Guard posts, patrol paths and combat orders | Partial foundation |
 | 0.6–0.9 Expanded jobs, logistics, progression and builders | Planned |
 | 1.0 Morale, raids, balance and multiplayer hardening | Planned |
@@ -147,7 +158,7 @@ See the full [development roadmap](docs/ROADMAP.md).
 1. Create a Valheim profile in r2modman or the Thunderstore app.
 2. Install **BepInExPack Valheim 5.4.2333+**.
 3. Install **Jötunn 2.29.2+**.
-4. Import [`HearthAndHird-v1.13.5.zip`](releases/HearthAndHird-v1.13.5.zip)
+4. Import [`HearthAndHird-v1.14.0.zip`](releases/HearthAndHird-v1.14.0.zip)
    as a local mod, or copy the packaged plugin into the profile manually.
 5. Remove older duplicate copies before launching.
 

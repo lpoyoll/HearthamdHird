@@ -1,7 +1,11 @@
-# Latest development release
+# Latest development build
 
-Current build: **Hearth & Hird 1.13.5**
+**Hearth & Hird 1.14.0** — physical Lumberjack and Hauler foundation.
 
-Download: [HearthAndHird-v1.13.5.zip](./HearthAndHird-v1.13.5.zip)
+[Download HearthAndHird-v1.14.0.zip](HearthAndHird-v1.14.0.zip)
 
-SHA-256: `1ca179fc043c7f228ca32d9d026780e8c2326d0b98edc1c9db6e28bb989de306`
+Install it on the server and every client. Remove older duplicate copies first;
+the internal `VikingSettlements.dll` name is retained for save compatibility.
+
+This is a development build. Back up important worlds and use the F7 physical
+work controls to report pathing and multiplayer ownership problems.

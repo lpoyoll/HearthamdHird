@@ -51,8 +51,10 @@ dedicated servers should leave `Development.EnableTestTools` false.
 - selected Follow, Hold and Retreat orders;
 - whole-Hird orders, formation cycling and combat-stance cycling.
 - temporary village-relationship reset for repeatable combat testing;
+- one-click Forestry Marker, Timber Store and mature test-tree setup;
+- direct Lumberjack/Hauler assignment with live task and cargo telemetry;
 - one-click local-Hird disband and safe cleanup of panel-created units,
-  Hearthstones and generated settlements.
+  Hearthstones, physical-work objects and generated settlements.
 
 The panel marks every unit and settlement object it creates. **Despawn test
 objects** deletes only those marked objects, while **Disband all Hird** releases the local player's complete
@@ -82,6 +84,27 @@ Use a player-hosted world with one remote client and the mod installed on both.
    and combat stance. Confirm the client sees the same movement and equipment.
 7. Host: assign it again, log out and reload. Confirm name, profile, equipment,
    job, Hearthstone binding and register entry persist.
+
+## Physical Lumberjack ownership test
+
+1. Host: spawn a Hearthstone, then use the F7 **Forestry Marker**, **Timber
+   Store** and **3 Test Trees** buttons while standing inside its radius.
+2. Spawn or select an assigned settler and press **Lumberjack**. The selected
+   readout should progress through seeking, walking, working, collecting and
+   hauling states; a block reason is shown if setup is incomplete.
+3. Confirm the settler walks to a marked tree, equips an axe, fells it,
+   processes the logs, collects actual drops and walks them to the Timber
+   Store. No wood should appear before those world actions occur.
+4. During a delivery, move the remote client beside the worker and take the
+   host outside the network area. Confirm only the current ZDO owner advances
+   the task and that the carry count does not duplicate.
+5. Return the host, interrupt the worker with nearby combat, and confirm work
+   pauses while cargo is retained. Change the job and confirm retained cargo
+   drops physically rather than disappearing.
+6. Put wood in an ordinary chest, select another assigned settler and press
+   **Hauler**. Confirm they physically walk source chest → Timber Store.
+7. Log out during a loaded delivery, reload, and confirm the ZDO carry manifest
+   restores the cargo once and the worker resumes delivery.
 
 Also test two separate Hirds, one per player. A player's party registry lives on
 that player's character data, and each settler records its recruiter ID, so one

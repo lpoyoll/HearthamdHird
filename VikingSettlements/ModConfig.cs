@@ -55,6 +55,10 @@ namespace VikingSettlements
         public static ConfigEntry<int> WarlordPeaceDays;
         public static ConfigEntry<bool> EnableTestTools;
         public static ConfigEntry<KeyboardShortcut> TestPanelHotkey;
+        public static ConfigEntry<bool> PhysicalJobsEnabled;
+        public static ConfigEntry<float> ForestryZoneRadius;
+        public static ConfigEntry<int> PhysicalCarryCapacity;
+        public static ConfigEntry<float> PhysicalWorkStuckSeconds;
 
         public static void Init(ConfigFile config)
         {
@@ -380,6 +384,30 @@ namespace VikingSettlements
             TestPanelHotkey = config.Bind("Development", "TestPanelHotkey",
                 new KeyboardShortcut(KeyCode.F7),
                 "Opens the host-only Hearth & Hird test panel when EnableTestTools is true.");
+
+            PhysicalJobsEnabled = config.Bind("Physical Work", "Enabled", true,
+                new ConfigDescription(
+                    "Uses visible, owner-authoritative physical tasks for supported jobs instead of granting resources on a timer.",
+                    null,
+                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
+
+            ForestryZoneRadius = config.Bind("Physical Work", "ForestryZoneRadius", 25f,
+                new ConfigDescription(
+                    "Default radius of a Forestry Marker.",
+                    new AcceptableValueRange<float>(10f, 50f),
+                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
+
+            PhysicalCarryCapacity = config.Bind("Physical Work", "CarryCapacity", 12,
+                new ConfigDescription(
+                    "Base number of resource items a physical worker carries. Strong settlers gain a small bonus.",
+                    new AcceptableValueRange<int>(4, 50),
+                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
+
+            PhysicalWorkStuckSeconds = config.Bind("Physical Work", "StuckTimeoutSeconds", 15f,
+                new ConfigDescription(
+                    "How long a physical worker may fail to make progress before abandoning that target and replanning.",
+                    new AcceptableValueRange<float>(5f, 60f),
+                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
         }
     }
 }

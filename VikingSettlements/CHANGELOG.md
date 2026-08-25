@@ -1,5 +1,28 @@
 # Changelog
 
+### 1.14.0
+
+- Added the first owner-authoritative physical job framework. A registered
+  physical task suppresses the inherited timed resource grant for that job,
+  so loaded Lumberjacks can no longer create wood from a menu-style tick.
+- Added buildable Forestry Markers. Lumberjacks select and reserve mature
+  world trees inside an enabled marker, walk to them without teleporting,
+  equip a real bronze axe, damage the tree and process its fallen logs.
+- Added real drop collection and persistent worker cargo. Strength affects
+  carry capacity; interrupted workers retain cargo, while reassignment or
+  death drops it back into the world instead of deleting it.
+- Added buildable Timber Stores as designated physical delivery endpoints.
+  Lumberjacks walk actual collected timber home and deposit it into the chest.
+- Added the Hauler job. Haulers find timber in ordinary settlement chests,
+  physically load it, walk to the nearest Timber Store and deposit it.
+- Added stuck-path recovery and tree/log reservations. Workers abandon an
+  unreachable target and replan without using routine teleport recovery.
+- Expanded the host-only F7 Test Muster with Forestry Marker, Timber Store and
+  test-tree spawns, direct Lumberjack/Hauler assignment, live task/cargo
+  telemetry and safe physical-work-object cleanup.
+- Added physical-work multiplayer settings and ZDO state for task telemetry,
+  carry manifests, forestry configuration and test-object provenance.
+
 ### 1.13.5
 
 - Replaced blanket settler exclusion in Hird targeting with relationship-aware

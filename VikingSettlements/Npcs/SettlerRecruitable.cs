@@ -30,6 +30,7 @@ namespace VikingSettlements.Npcs
         Engineer = 12,
         Innkeeper = 13,
         Fisher = 14,
+        Hauler = 15,
     }
 
     /// <summary>
@@ -709,7 +710,7 @@ namespace VikingSettlements.Npcs
             return true;
         }
 
-        internal const int JobCount = 15;
+        internal const int JobCount = 16;
 
         /// <summary>Assigns a job directly (used by interact cycling and the management panel).</summary>
         internal void SetJob(SettlerJob job)
@@ -727,6 +728,11 @@ namespace VikingSettlements.Npcs
                 {
                     courier.DropCargo();
                 }
+            }
+            if ((Job == SettlerJob.Lumberjack || Job == SettlerJob.Hauler)
+                && job != SettlerJob.Lumberjack && job != SettlerJob.Hauler)
+            {
+                GetComponent<HearthAndHird.Jobs.PhysicalCarry>()?.DropAll();
             }
             Job = job;
             _directives?.ApplyLegacy(SettlerDirectiveState.FromJob(job), Home,
@@ -767,6 +773,7 @@ namespace VikingSettlements.Npcs
                 case SettlerJob.Engineer: return "$vs_job_engineer";
                 case SettlerJob.Innkeeper: return "$vs_job_innkeeper";
                 case SettlerJob.Fisher: return "$vs_job_fisher";
+                case SettlerJob.Hauler: return "$hnh_job_hauler";
                 default: return "$vs_job_villager";
             }
         }

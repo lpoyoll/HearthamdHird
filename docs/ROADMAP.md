@@ -44,12 +44,18 @@ last known positions on the map.
 
 ## 0.4.0 — Physical Lumberjack and Hauler proof
 
-- Forestry work area and tree filters.
-- Target reservation and path recovery.
-- Physical lumberjack animation and damage.
-- Fallen-log tracking and processing.
-- Real drop collection, carry capacity and timber storage delivery.
-- Hauler task using the same reservations and storage rules.
+- [x] Forestry work area and mature-tree filters.
+- [x] Target reservation and path recovery without routine teleporting.
+- [x] Physical lumberjack axe animation and world-tree damage.
+- [x] Fallen-log tracking and processing.
+- [x] Real drop collection, persistent carry capacity and timber delivery.
+- [x] Physical Hauler source-chest to Timber Store deliveries.
+- [ ] Complete two-player soak testing and tune real-world pathing edge cases.
+
+The proof is implemented in development build 1.14.0. It remains deliberately
+narrow: loaded workers perform real actions, while the next iteration hardens
+ownership transfer, congested settlements and difficult terrain before this
+task framework is reused for mining, farming and construction.
 
 ## Later milestones
 

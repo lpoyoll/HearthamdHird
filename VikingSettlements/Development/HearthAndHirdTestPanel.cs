@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jotunn.Managers;
+using HearthAndHird.Jobs;
 using HearthAndHird.Network;
+using HearthAndHird.Settlements;
 using UnityEngine;
 using UnityEngine.UI;
 using VikingSettlements.Npcs;
@@ -16,7 +18,7 @@ namespace VikingSettlements.Development
     internal static class HearthAndHirdTestPanel
     {
         private const float PanelWidth = 920f;
-        private const float PanelHeight = 980f;
+        private const float PanelHeight = 1080f;
 
         private static readonly string[] ObjectNames = { "Settler", "Seer", "Hearthstone" };
         private static readonly string[] StateNames = { "Wild", "Hird follower", "Assigned settler" };
@@ -44,6 +46,8 @@ namespace VikingSettlements.Development
         private static SettlerRecruitable _selected;
         private static Text _previewText;
         private static Text _villagePreviewText;
+        private static Text _worldStatusText;
+        private static Text _selectedStatusText;
         private static int _unitIndex;
         private static int _stateIndex = 1;
         private static int _countIndex;
@@ -101,6 +105,8 @@ namespace VikingSettlements.Development
                 _panel = null;
                 _previewText = null;
                 _villagePreviewText = null;
+                _worldStatusText = null;
+                _selectedStatusText = null;
                 GUIManager.BlockInput(false);
             }
         }
@@ -121,8 +127,8 @@ namespace VikingSettlements.Development
 
             Label("HEARTH & HIRD — TEST MUSTER", 0f, -28f, 27,
                 GUIManager.Instance.ValheimOrange, 840f, TextAnchor.MiddleCenter, true);
-            Label(WorldStatus(), -405f, -65f, 15, Color.white, 810f,
-                TextAnchor.UpperLeft, false, 48f);
+            _worldStatusText = Label(WorldStatus(), -405f, -65f, 15, Color.white, 810f,
+                TextAnchor.UpperLeft, false, 48f).GetComponent<Text>();
 
             Section("Configure the next spawn", -120f);
             FieldLabel("OBJECT", -280f, -153f);
@@ -168,40 +174,51 @@ namespace VikingSettlements.Development
                 TextAnchor.MiddleLeft, false, 40f);
             _villagePreviewText = villagePreview.GetComponent<Text>();
 
-            Section("Selected unit", -510f);
-            Label(SelectedStatus(), -405f, -543f, 15, Color.white, 810f,
-                TextAnchor.UpperLeft, false, 46f);
-            Button("Previous", -320f, -597f, () => SelectRelative(-1), 140f);
-            Button("Nearest", -160f, -597f, SelectNearest, 140f);
-            Button("Next", 0f, -597f, () => SelectRelative(1), 140f);
-            Button("Teleport here", 160f, -597f, TeleportSelected, 140f);
-            Button("Open gear", 320f, -597f, OpenGear, 140f);
+            Section("Physical work test setup", -510f);
+            Button("FORESTRY MARKER", -320f, -545f,
+                () => SpawnWorkPiece(SettlementPieces.ForestryMarker, "Forestry Marker", -2.5f), 150f, 38f);
+            Button("TIMBER STORE", -160f, -545f,
+                () => SpawnWorkPiece(SettlementPieces.TimberStore, "Timber Store", 2.5f), 150f, 38f);
+            Button("3 TEST TREES", 0f, -545f, SpawnTestTrees, 150f, 38f);
+            Button("LUMBERJACK", 160f, -545f,
+                () => SetSelectedJob(SettlerJob.Lumberjack), 150f, 38f);
+            Button("HAULER", 320f, -545f,
+                () => SetSelectedJob(SettlerJob.Hauler), 150f, 38f);
 
-            Button("Make wild", -320f, -642f, () => SetSelectedState(SettlerState.Wild), 140f);
-            Button("Join Hird", -160f, -642f, () => SetSelectedState(SettlerState.Following), 140f);
-            Button("Assign", 0f, -642f, () => SetSelectedState(SettlerState.Assigned), 140f);
-            Button("Previous job", 160f, -642f, () => CycleJob(-1), 140f);
-            Button("Next job", 320f, -642f, () => CycleJob(1), 140f);
-            Button("Selected follow", -320f, -682f, () => OrderSelected(PartyStance.Follow), 140f);
-            Button("Selected hold", -160f, -682f, () => OrderSelected(PartyStance.Hold), 140f);
-            Button("Selected retreat", 0f, -682f, () => OrderSelected(PartyStance.Fallback), 140f);
-            Button("Level down", 180f, -682f, () => ChangeLevel(-1), 140f);
-            Button("Level up", 340f, -682f, () => ChangeLevel(1), 140f);
+            Section("Selected unit", -590f);
+            _selectedStatusText = Label(SelectedStatus(), -405f, -623f, 15, Color.white, 810f,
+                TextAnchor.UpperLeft, false, 64f).GetComponent<Text>();
+            Button("Previous", -320f, -685f, () => SelectRelative(-1), 140f);
+            Button("Nearest", -160f, -685f, SelectNearest, 140f);
+            Button("Next", 0f, -685f, () => SelectRelative(1), 140f);
+            Button("Teleport here", 160f, -685f, TeleportSelected, 140f);
+            Button("Open gear", 320f, -685f, OpenGear, 140f);
 
-            Section("Whole local Hird", -729f);
-            Button("All follow", -320f, -762f, () => OrderAll(PartyStance.Follow), 140f);
-            Button("All hold", -160f, -762f, () => OrderAll(PartyStance.Hold), 140f);
-            Button("All retreat", 0f, -762f, () => OrderAll(PartyStance.Fallback), 140f);
-            Button("Formation", 160f, -762f, CycleFormation, 140f);
-            Button("Combat stance", 320f, -762f, CycleCombatStance, 140f);
+            Button("Make wild", -320f, -730f, () => SetSelectedState(SettlerState.Wild), 140f);
+            Button("Join Hird", -160f, -730f, () => SetSelectedState(SettlerState.Following), 140f);
+            Button("Assign", 0f, -730f, () => SetSelectedState(SettlerState.Assigned), 140f);
+            Button("Previous job", 160f, -730f, () => CycleJob(-1), 140f);
+            Button("Next job", 320f, -730f, () => CycleJob(1), 140f);
+            Button("Selected follow", -320f, -770f, () => OrderSelected(PartyStance.Follow), 140f);
+            Button("Selected hold", -160f, -770f, () => OrderSelected(PartyStance.Hold), 140f);
+            Button("Selected retreat", 0f, -770f, () => OrderSelected(PartyStance.Fallback), 140f);
+            Button("Level down", 180f, -770f, () => ChangeLevel(-1), 140f);
+            Button("Level up", 340f, -770f, () => ChangeLevel(1), 140f);
 
-            Section("Cleanup and relationship testing", -807f);
-            Button("DISBAND ALL HIRD", -300f, -846f, DisbandAllHird, 190f, 40f);
-            Button("RESET RELATION", -95f, -846f, ResetSelectedRelationship, 190f, 40f);
-            Button("DESPAWN TEST OBJECTS", 120f, -846f, DespawnTestObjects, 215f, 40f);
-            Button("Close", 325f, -846f, Close, 150f, 40f);
+            Section("Whole local Hird", -817f);
+            Button("All follow", -320f, -850f, () => OrderAll(PartyStance.Follow), 140f);
+            Button("All hold", -160f, -850f, () => OrderAll(PartyStance.Hold), 140f);
+            Button("All retreat", 0f, -850f, () => OrderAll(PartyStance.Fallback), 140f);
+            Button("Formation", 160f, -850f, CycleFormation, 140f);
+            Button("Combat stance", 320f, -850f, CycleCombatStance, 140f);
+
+            Section("Cleanup and relationship testing", -895f);
+            Button("DISBAND ALL HIRD", -300f, -934f, DisbandAllHird, 190f, 40f);
+            Button("RESET RELATION", -95f, -934f, ResetSelectedRelationship, 190f, 40f);
+            Button("DESPAWN TEST OBJECTS", 120f, -934f, DespawnTestObjects, 215f, 40f);
+            Button("Close", 325f, -934f, Close, 150f, 40f);
             Label("Despawn removes loaded units, Hearthstones and settlements created by this panel. Disband releases your local Hird.",
-                -405f, -897f, 14, new Color(0.78f, 0.73f, 0.63f), 810f,
+                -405f, -985f, 14, new Color(0.78f, 0.73f, 0.63f), 810f,
                 TextAnchor.MiddleCenter, false, 24f);
         }
 
@@ -296,8 +313,10 @@ namespace VikingSettlements.Development
                 && unit.GetComponent<PartyMember>()?.IsActiveMember == true);
             var hearthstones = PlayerSettlement.Instances.Count(settlement => settlement.IsTestSpawned);
             var villages = VillageHeart.Instances.Count(heart => heart.IsTestGenerated);
+            var forestry = ForestryZone.Instances.Count(zone => zone != null);
+            var timberStores = TimberStockpile.Instances.Count(store => store != null);
             return $"Loaded controllable: {units.Count}    Test-spawned: {test}    Test Hearthstones: {hearthstones}    Test settlements: {villages}    Local Hird: {hird}    "
-                + $"Formation: {PartySystem.Formation}    Combat: {PartySystem.CombatStance}";
+                + $"Work zones/stores: {forestry}/{timberStores}    Formation: {PartySystem.Formation}    Combat: {PartySystem.CombatStance}";
         }
 
         private static string SelectedStatus()
@@ -317,9 +336,10 @@ namespace VikingSettlements.Development
             var homeDistance = resident != null
                 ? $" • {Vector3.Distance(_selected.transform.position, resident.Home):0.0}m from home"
                 : "";
+            var task = PhysicalTaskTelemetry.Describe(view);
             return $"{tag} • {_selected.GetHoverName()} • Level {_selected.Level} "
                 + $"({_selected.Level - 1} stars) • {_selected.State}/{_selected.Job} • "
-                + $"{distance:0.0}m{village}{homeDistance} • ZDO owner {owner}";
+                + $"{distance:0.0}m{village}{homeDistance} • ZDO owner {owner}\nTask: {task}";
         }
 
         private static List<SettlerRecruitable> Candidates()
@@ -400,6 +420,107 @@ namespace VikingSettlements.Development
             }
             player.Message(MessageHud.MessageType.Center,
                 "Spawned a Camp-tier Hearthstone founded by you.");
+            Rebuild();
+        }
+
+        private static void SpawnWorkPiece(string prefabName, string label, float sideOffset)
+        {
+            var player = Player.m_localPlayer;
+            if (!TestAuthority.IsHost || player == null)
+            {
+                return;
+            }
+            if (PlayerSettlement.FindOwnedContaining(player.transform.position,
+                    player.GetPlayerID()) == null)
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    "Spawn a Hearthstone, then stand inside its work radius.");
+                return;
+            }
+            var prefab = PrefabManager.Instance.GetPrefab(prefabName);
+            if (prefab == null)
+            {
+                player.Message(MessageHud.MessageType.Center, label + " prefab is unavailable.");
+                return;
+            }
+            var position = SpawnPosition(player, 0, 1) + player.transform.right * sideOffset;
+            if (ZoneSystem.instance != null)
+            {
+                position.y = ZoneSystem.instance.GetGroundHeight(position);
+            }
+            var gameObject = UnityEngine.Object.Instantiate(prefab, position,
+                Quaternion.LookRotation(-player.transform.forward, Vector3.up));
+            MarkTestWorkObject(gameObject);
+            player.Message(MessageHud.MessageType.Center,
+                $"Spawned {label}. It is marked for F7 cleanup.");
+            Rebuild();
+        }
+
+        private static void SpawnTestTrees()
+        {
+            var player = Player.m_localPlayer;
+            if (!TestAuthority.IsHost || player == null)
+            {
+                return;
+            }
+            var prefab = new[] { "Beech1", "Beech2", "Birch1" }
+                .Select(PrefabManager.Instance.GetPrefab).FirstOrDefault(value => value != null);
+            if (prefab == null)
+            {
+                player.Message(MessageHud.MessageType.Center, "No test-tree prefab is available.");
+                return;
+            }
+            for (var i = 0; i < 3; i++)
+            {
+                var position = player.transform.position
+                    + player.transform.forward * (10f + i * 2f)
+                    + player.transform.right * ((i - 1) * 3.2f);
+                if (ZoneSystem.instance != null)
+                {
+                    position.y = ZoneSystem.instance.GetGroundHeight(position);
+                }
+                var tree = UnityEngine.Object.Instantiate(prefab, position,
+                    Quaternion.Euler(0f, i * 71f, 0f));
+                MarkTestWorkObject(tree);
+            }
+            player.Message(MessageHud.MessageType.Center,
+                "Spawned 3 mature test trees. Place/enable a Forestry Marker over them.");
+            Rebuild();
+        }
+
+        private static void MarkTestWorkObject(GameObject gameObject)
+        {
+            var view = gameObject != null ? gameObject.GetComponent<ZNetView>() : null;
+            if (view != null && view.IsValid())
+            {
+                view.ClaimOwnership();
+                view.GetZDO().Set(HearthZdoKeys.WorkPieceTestSpawned, true);
+            }
+        }
+
+        private static void SetSelectedJob(SettlerJob job)
+        {
+            var player = Player.m_localPlayer;
+            if (_selected == null || player == null)
+            {
+                player?.Message(MessageHud.MessageType.Center, "Select a settler first.");
+                return;
+            }
+            if (_selected.State != SettlerState.Assigned)
+            {
+                var settlement = PlayerSettlement.FindOwnedContaining(player.transform.position,
+                    player.GetPlayerID());
+                if (settlement == null)
+                {
+                    player.Message(MessageHud.MessageType.Center,
+                        "Stand inside your Hearthstone to assign this settler first.");
+                    return;
+                }
+                _selected.ConfigureForTest(player, SettlerState.Assigned, settlement);
+            }
+            _selected.SetJob(job);
+            player.Message(MessageHud.MessageType.Center,
+                $"{_selected.GetHoverName()} is now a {job}.");
             Rebuild();
         }
 
@@ -610,6 +731,23 @@ namespace VikingSettlements.Development
         {
             var player = Player.m_localPlayer;
             var removedVillageParts = TestVillagePart.DestroyLoaded();
+            var workObjects = UnityEngine.Object.FindObjectsOfType<ZNetView>()
+                .Where(view => view != null && view.IsValid()
+                    && view.GetZDO().GetBool(HearthZdoKeys.WorkPieceTestSpawned))
+                .Select(view => view.gameObject).ToList();
+            var removedWorkObjects = 0;
+            foreach (var workObject in workObjects)
+            {
+                var view = workObject != null ? workObject.GetComponent<ZNetView>() : null;
+                if (workObject == null || view == null || !view.IsValid())
+                {
+                    continue;
+                }
+                view.ClaimOwnership();
+                if (ZNetScene.instance != null) ZNetScene.instance.Destroy(workObject);
+                else UnityEngine.Object.Destroy(workObject);
+                removedWorkObjects++;
+            }
             var units = Candidates().Where(unit => unit.IsTestSpawned)
                 .Where(unit =>
                 {
@@ -634,15 +772,25 @@ namespace VikingSettlements.Development
             player?.Message(MessageHud.MessageType.Center,
                 $"Despawned {removedUnits} test unit{(removedUnits == 1 ? "" : "s")} and "
                 + $"{removedHearthstones} test Hearthstone{(removedHearthstones == 1 ? "" : "s")}; "
-                + $"removed {removedVillageParts} loaded test-village object{(removedVillageParts == 1 ? "" : "s")}.");
+                + $"removed {removedVillageParts} loaded test-village object{(removedVillageParts == 1 ? "" : "s")} and "
+                + $"{removedWorkObjects} physical-work object{(removedWorkObjects == 1 ? "" : "s")}.");
             Rebuild();
         }
 
         private sealed class PanelBehaviour : MonoBehaviour
         {
+            private float _nextRefresh;
+
             private void Update()
             {
                 if (Input.GetKeyDown(KeyCode.Escape) || !TestAuthority.IsHost) Close();
+                if (Time.time < _nextRefresh)
+                {
+                    return;
+                }
+                _nextRefresh = Time.time + 0.5f;
+                if (_worldStatusText != null) _worldStatusText.text = WorldStatus();
+                if (_selectedStatusText != null) _selectedStatusText.text = SelectedStatus();
             }
         }
     }

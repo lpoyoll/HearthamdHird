@@ -6,7 +6,7 @@
 human settlers, build them a home, equip and command a persistent hird, and
 develop camps into functioning communities.
 
-> Version **1.13.5** is an active development build. Back up important worlds
+> Version **1.14.0** is an active development build. Back up important worlds
 > before testing it.
 
 ## Current highlights
@@ -25,10 +25,10 @@ develop camps into functioning communities.
   settlers, Hearthstones and complete settlements of any tier.
 - Multiplayer ownership and persistence through Valheim ZDO state.
 
-The central development goal is **physical work**. NPCs should walk to real
-targets, use tools and animations, collect actual drops and carry them to
-rule-based storage. The next milestone builds the first reusable version of
-that loop through Lumberjack and Hauler jobs.
+Version 1.14.0 includes the first **physical work** proof. Lumberjacks walk to
+marked real trees, use an axe, process logs, collect actual drops and carry
+them to a Timber Store. Haulers physically move timber from ordinary chests to
+that designated store. This is the reusable foundation for later jobs.
 
 ## Installation
 
@@ -58,6 +58,11 @@ Press **F7**, select what you want from the dropdowns and then press the
 relevant Spawn button. Complete settlements can be created as a Camp,
 Homestead, Hamlet, Village, Hold, Great Hold or Jarl's Seat, either near you
 or near the first spawn.
+
+For the physical-work test, spawn a Hearthstone and then use **Forestry
+Marker**, **Timber Store** and **3 Test Trees**. Select an assigned settler and
+press **Lumberjack** or **Hauler**. The selected-unit readout shows its live
+task, block reason and carried cargo.
 
 The same panel can reset temporary village hostility, disband the local hird
 and remove loaded objects it created. Remote clients can interact with the

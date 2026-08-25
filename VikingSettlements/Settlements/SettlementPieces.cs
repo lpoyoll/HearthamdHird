@@ -18,6 +18,8 @@ namespace VikingSettlements.Settlements
         public const string SupplyChest = "VS_BuildChest";
         public const string BuildSite = "VS_BuildSite";
         public const string RallyBanner = "VS_RallyBanner";
+        public const string ForestryMarker = "HNH_ForestryMarker";
+        public const string TimberStore = "HNH_TimberStore";
 
         private static bool _created;
 
@@ -32,6 +34,8 @@ namespace VikingSettlements.Settlements
             CreateSupplyChest();
             CreateBuildSite();
             CreateRallyBanner();
+            CreateForestryMarker();
+            CreateTimberStore();
 
             if (PrefabManager.Instance.GetPrefab("guard_stone") == null)
             {
@@ -95,6 +99,61 @@ namespace VikingSettlements.Settlements
                 },
             }));
             Jotunn.Logger.LogInfo("Created buildable piece VS_BuildChest");
+        }
+
+        private static void CreateForestryMarker()
+        {
+            if (PrefabManager.Instance.GetPrefab("piece_banner01") == null)
+            {
+                Jotunn.Logger.LogWarning("Could not create HNH_ForestryMarker: piece_banner01 prefab not found");
+                return;
+            }
+            var clone = PrefabManager.Instance.CreateClonedPrefab(ForestryMarker, "piece_banner01");
+            clone.AddComponent<ForestryZone>();
+            PieceManager.Instance.AddPiece(new CustomPiece(clone, false, new PieceConfig
+            {
+                Name = "$hnh_forestry_marker",
+                Description = "$hnh_forestry_marker_desc",
+                PieceTable = "Hammer",
+                Category = "Misc",
+                CraftingStation = "piece_workbench",
+                Requirements = new[]
+                {
+                    new RequirementConfig("Wood", 6, 0, true),
+                    new RequirementConfig("Resin", 2, 0, true),
+                },
+            }));
+            Jotunn.Logger.LogInfo("Created buildable piece HNH_ForestryMarker");
+        }
+
+        private static void CreateTimberStore()
+        {
+            if (PrefabManager.Instance.GetPrefab("piece_chest_wood") == null)
+            {
+                Jotunn.Logger.LogWarning("Could not create HNH_TimberStore: piece_chest_wood prefab not found");
+                return;
+            }
+            var clone = PrefabManager.Instance.CreateClonedPrefab(TimberStore, "piece_chest_wood");
+            clone.AddComponent<TimberStockpile>();
+            var container = clone.GetComponent<Container>();
+            if (container != null)
+            {
+                container.m_name = "$hnh_timber_store";
+            }
+            PieceManager.Instance.AddPiece(new CustomPiece(clone, false, new PieceConfig
+            {
+                Name = "$hnh_timber_store",
+                Description = "$hnh_timber_store_desc",
+                PieceTable = "Hammer",
+                Category = "Misc",
+                CraftingStation = "piece_workbench",
+                Requirements = new[]
+                {
+                    new RequirementConfig("Wood", 10, 0, true),
+                    new RequirementConfig("FineWood", 2, 0, true),
+                },
+            }));
+            Jotunn.Logger.LogInfo("Created buildable piece HNH_TimberStore");
         }
 
         // The rally standard: a cheap plantable banner the war party can be

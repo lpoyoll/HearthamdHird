@@ -101,7 +101,8 @@ all fifteen:
 | Job | Every work tick (60 s) | Needs before they start |
 |---|---|---|
 | **Villager** | Nothing. The default — just lives there | — |
-| **Lumberjack** | **2–4 wood** into the nearest chest with room | A chest with space |
+| **Lumberjack** | Physically fells marked trees, processes logs and carries actual drops | An active Forestry Marker and Timber Store |
+| **Hauler** | Physically moves timber from ordinary chests to designated storage | A source chest containing timber and a Timber Store |
 | **Farmer** | **1–2 carrots or turnips** (50/50); **20% chance of 1 honey** | A chest with space; a **beehive** in the radius for the honey |
 | **Builder** | Repairs up to **3 damaged structures** — free, no materials consumed | A **workbench** in the radius, and something actually damaged |
 | **Blacksmith** | One smelt: 1 copper ore → copper, else 1 tin ore → tin, else 1 iron scrap → iron, else **1 wood → coal** | A **forge** in the radius; the ore (or wood) **and room for the result in the same chest** |
