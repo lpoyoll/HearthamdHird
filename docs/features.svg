@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 780" width="1200" height="780" role="img" aria-labelledby="vs-title vs-desc">
-<title id="vs-title">VikingSettlements feature overview</title>
+<title id="vs-title">Hearth &amp; Hird feature overview</title>
 <desc id="vs-desc">Explore the wild: villages placed by world generation, named settlers, village traders. Build your own: recruit villagers, settlement banner, put them to work. Hold the gates: native raid events, rival clans, tunable config. Six settler jobs: villager, lumberjack, farmer, builder, blacksmith, guard.</desc>
 <defs>
 <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#141d22"/><stop offset="1" stop-color="#0b1013"/></linearGradient>

@@ -1,6 +1,6 @@
 # Console Command Reference
 
-Every console command that works with VikingSettlements — the mod's own two
+Every console command that works with Hearth &amp; Hird — the mod's own two
 commands, its spawnable prefabs, and the vanilla dev commands that exercise
 each of its systems.
 

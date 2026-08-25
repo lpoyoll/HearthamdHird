@@ -1,6 +1,6 @@
 {
   "name": "HearthAndHird",
-  "description": "A Viking settlement and warband simulation for Valheim, built as a save-compatible derivative of VikingSettlements.",
+  "description": "A living Viking settlement and warband simulation for Valheim: recruit people, build communities and command your hird.",
   "version_number": "1.13.5",
   "website_url": "https://github.com/lpoyoll/HearthamdHird",
   "dependencies": [
