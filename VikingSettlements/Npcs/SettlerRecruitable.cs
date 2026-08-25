@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using HearthAndHird.AI;
+using HearthAndHird.Network;
 using UnityEngine;
 using VikingSettlements.Settlements;
 
@@ -51,6 +52,7 @@ namespace VikingSettlements.Npcs
         private Party.PartyMember _member;
         private SettlerDirectiveState _directives;
         private float _baseAlertRange = -1f;
+        private float _nextRegisterSync;
 
         private void Awake()
         {
@@ -59,6 +61,18 @@ namespace VikingSettlements.Npcs
             _ai = GetComponent<MonsterAI>();
             _member = GetComponent<Party.PartyMember>();
             _directives = GetComponent<SettlerDirectiveState>();
+            if (_character != null)
+            {
+                _character.m_onDeath += OnDeath;
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_character != null)
+            {
+                _character.m_onDeath -= OnDeath;
+            }
         }
 
         private void OnEnable()
@@ -96,6 +110,47 @@ namespace VikingSettlements.Npcs
         internal bool IsHungry => _nview != null && _nview.IsValid()
             && _nview.GetZDO().GetBool(SettlerWork.HungryKey);
 
+        internal bool HasHearthstone => _nview != null && _nview.IsValid()
+            && (_nview.GetZDO().GetLong(HearthZdoKeys.SettlerHearthUser) != 0L
+                || _nview.GetZDO().GetLong(HearthZdoKeys.SettlerHearthId) != 0L);
+
+        internal bool BelongsTo(PlayerSettlement settlement)
+        {
+            if (settlement == null || _nview == null || !_nview.IsValid())
+            {
+                return false;
+            }
+            var id = settlement.Id;
+            return id != ZDOID.None
+                && _nview.GetZDO().GetLong(HearthZdoKeys.SettlerHearthUser) == id.UserID
+                && _nview.GetZDO().GetLong(HearthZdoKeys.SettlerHearthId) == id.ID;
+        }
+
+        internal void BindSettlement(PlayerSettlement settlement)
+        {
+            if (settlement == null || _nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            var id = settlement.Id;
+            _nview.GetZDO().Set(HearthZdoKeys.SettlerHearthUser, id.UserID);
+            _nview.GetZDO().Set(HearthZdoKeys.SettlerHearthId, (long)id.ID);
+        }
+
+        internal void ClearSettlement()
+        {
+            if (_nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            var settlement = PlayerSettlement.FindForSettler(this);
+            settlement?.RemoveFromRegister(_nview.GetZDO().m_uid);
+            _nview.ClaimOwnership();
+            _nview.GetZDO().Set(HearthZdoKeys.SettlerHearthUser, 0L);
+            _nview.GetZDO().Set(HearthZdoKeys.SettlerHearthId, 0L);
+        }
+
         private void Update()
         {
             if (_nview == null || !_nview.IsValid() || _character == null)
@@ -110,6 +165,24 @@ namespace VikingSettlements.Npcs
             if (!_nview.IsOwner() || _ai == null)
             {
                 return;
+            }
+
+            if (state == SettlerState.Assigned && Time.time >= _nextRegisterSync)
+            {
+                _nextRegisterSync = Time.time + 5f;
+                var settlement = PlayerSettlement.FindForSettler(this);
+                if (settlement != null)
+                {
+                    if (!HasHearthstone)
+                    {
+                        BindSettlement(settlement);
+                    }
+                    if (RecruiterId == 0L && settlement.OwnerId != 0L)
+                    {
+                        _nview.GetZDO().Set(OwnerKey, settlement.OwnerId);
+                    }
+                    settlement.UpdateRegister(this);
+                }
             }
 
             if (state == SettlerState.Following && _ai.GetFollowTarget() == null)
@@ -128,6 +201,15 @@ namespace VikingSettlements.Npcs
             {
                 _ai.SetFollowTarget(null);
             }
+        }
+
+        private void OnDeath()
+        {
+            if (_nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            PlayerSettlement.FindForSettler(this)?.RemoveFromRegister(_nview.GetZDO().m_uid);
         }
 
         // Recruited settlers always side with players; wild ones follow the
@@ -229,7 +311,8 @@ namespace VikingSettlements.Npcs
                         break;
                     }
                     var stance = _member != null ? _member.Stance : Party.PartyStance.Follow;
-                    var nearBanner = PlayerSettlement.FindNearest(transform.position, ModConfig.SettlementRadius.Value) != null;
+                    var nearBanner = PlayerSettlement.FindOwnedContaining(
+                        transform.position, RecruiterId) != null;
                     var action = nearBanner
                         ? "$vs_assign"
                         : (stance == Party.PartyStance.Hold ? "$vs_party_followcmd" : "$vs_party_waitcmd");
@@ -255,6 +338,14 @@ namespace VikingSettlements.Npcs
                 return false;
             }
 
+            if (State != SettlerState.Wild && RecruiterId != 0L
+                && RecruiterId != player.GetPlayerID())
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$hnh_settler_not_owner"));
+                return true;
+            }
+
             _nview.ClaimOwnership();
 
             switch (State)
@@ -270,7 +361,8 @@ namespace VikingSettlements.Npcs
                     // a party member between waiting here and following.
                     if (_member != null
                         && _nview.GetZDO().GetBool(Party.PartySystem.PartyKey)
-                        && PlayerSettlement.FindNearest(transform.position, ModConfig.SettlementRadius.Value) == null)
+                        && PlayerSettlement.FindOwnedContaining(
+                            transform.position, player.GetPlayerID()) == null)
                     {
                         return ToggleWait(player);
                     }
@@ -380,6 +472,7 @@ namespace VikingSettlements.Npcs
 
         private bool Dismiss(Player player)
         {
+            ClearSettlement();
             if (_member != null)
             {
                 Party.PartySystem.RemoveMember(_member.Id);
@@ -400,15 +493,25 @@ namespace VikingSettlements.Npcs
 
         private bool Assign(Player player)
         {
-            var settlement = PlayerSettlement.FindNearest(transform.position, ModConfig.SettlementRadius.Value);
+            var settlement = PlayerSettlement.FindOwnedContaining(
+                transform.position, player.GetPlayerID());
             if (settlement == null)
             {
-                player.Message(MessageHud.MessageType.Center, Localization.instance.Localize("$vs_nosettlement"));
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$hnh_no_owned_hearth"));
                 return true;
             }
-            if (settlement.CountAssignedSettlers() >= settlement.SettlerCap)
+            var assigned = settlement.CountAssignedSettlers();
+            if (assigned >= settlement.TierPopulationCap)
             {
-                player.Message(MessageHud.MessageType.Center, Localization.instance.Localize("$vs_settlementfull"));
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$hnh_hearth_tier_full"));
+                return true;
+            }
+            if (assigned >= settlement.BedCapacity)
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$hnh_hearth_need_bed"));
                 return true;
             }
 
@@ -420,6 +523,7 @@ namespace VikingSettlements.Npcs
             State = SettlerState.Assigned;
             Job = SettlerJob.Villager;
             _nview.GetZDO().Set(HomeKey, settlement.transform.position);
+            BindSettlement(settlement);
             _directives?.ApplyLegacy(SettlerDirectiveKind.Idle, settlement.transform.position,
                 issuerId: player.GetPlayerID());
             if (_ai != null)
@@ -427,6 +531,7 @@ namespace VikingSettlements.Npcs
                 _ai.SetFollowTarget(null);
                 _ai.SetPatrolPoint(settlement.transform.position);
             }
+            settlement.UpdateRegister(this);
             player.Message(MessageHud.MessageType.Center,
                 Localization.instance.Localize($"{GetHoverName()} $vs_assigned"));
             return true;
@@ -440,6 +545,7 @@ namespace VikingSettlements.Npcs
                     Localization.instance.Localize(Party.PartySystem.RecruitmentFailure(player)));
                 return true;
             }
+            ClearSettlement();
             State = SettlerState.Following;
             Job = SettlerJob.Villager;
             _nview.GetZDO().Set(OwnerKey, player.GetPlayerID());
@@ -500,6 +606,7 @@ namespace VikingSettlements.Npcs
                 _ai.SetFollowTarget(null);
                 _ai.SetPatrolPoint(Home);
             }
+            PlayerSettlement.FindForSettler(this)?.UpdateRegister(this);
         }
 
         private bool CycleJob(Player player)

@@ -39,7 +39,7 @@ namespace VikingSettlements.Settlements
             {
                 return 0;
             }
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = PlayerSettlement.WorkRadiusAt(center);
             var count = 0;
             foreach (var chest in Instances)
             {
@@ -60,7 +60,7 @@ namespace VikingSettlements.Settlements
             {
                 return 0;
             }
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = PlayerSettlement.WorkRadiusAt(center);
             var taken = 0;
             foreach (var chest in Instances)
             {
@@ -86,7 +86,7 @@ namespace VikingSettlements.Settlements
         /// <summary>Deposits the item into a supply chest with room, if any.</summary>
         internal static bool DepositAround(Vector3 center, ItemDrop.ItemData item)
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = PlayerSettlement.WorkRadiusAt(center);
             foreach (var chest in Instances)
             {
                 var inventory = chest.InventoryIfNear(center, radius);
@@ -101,7 +101,7 @@ namespace VikingSettlements.Settlements
 
         internal static bool AnyAround(Vector3 center)
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = PlayerSettlement.WorkRadiusAt(center);
             foreach (var chest in Instances)
             {
                 if (chest != null && Vector3.Distance(chest.transform.position, center) <= radius)

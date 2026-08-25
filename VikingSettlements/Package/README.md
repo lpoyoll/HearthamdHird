@@ -2,8 +2,9 @@
 
 > **Hearth & Hird development branch:** this derivative retains the
 > VikingSettlements plugin identity and save format while its systems are
-> migrated incrementally. Human player-body settlers and the first Hird Horn
-> command layer are now implemented. See `docs/ROADMAP.md` and `docs/HIRD.md`.
+> migrated incrementally. Human player-body settlers, Hird battlefield orders
+> and the seven-tier Hearthstone foundation are now implemented. See
+> `docs/ROADMAP.md`, `docs/HIRD.md` and `docs/HEARTHSTONE.md`.
 
 ![VikingSettlements — a pixel-art village of moss-roofed cabins at the forest's edge](https://raw.githubusercontent.com/abjumb/VikingSettlements/master/docs/brand/banner-800x296.png)
 
@@ -62,13 +63,14 @@ the same way; world and raid settings are admin-only and sync from the server.
 - Named settler NPCs that stay in their village, chat with visiting players,
   and fight off raiding monsters.
 - A village trader with a small store.
-- **Build your own settlement**: craft the *Settlement Banner* (hammer →
-  Misc, needs a workbench) to found a settlement. Name it (Shift+E on the
-  banner), and manage it from one screen: E opens a panel listing every
-  settler — name, rank, job, hunger — with job reassignment buttons.
+- **Build your own settlement**: craft the *Hearthstone* (hammer → Misc,
+  needs a workbench) to found a creator-owned camp. Each settler needs an
+  unclaimed bed. Upgrade through seven biome tiers from Camp (4 people, 35m)
+  to Jarl's Seat (64 people, 200m). E opens a persistent paged register with
+  name, rank, job, hunger and a Map button for every settler's last location.
 - **Recruit settlers**: press E on a settler in a wild settlement to recruit
   them for coins. They follow you; bring them home and press E near your
-  banner to assign them.
+  Hearthstone to assign them.
 - **A war party you can lose**: craft and upgrade a Hird Horn to command from
   2 companions in the Meadows up to 12 in the Ashlands. Use the horn to toggle
   Follow/Hold, Block+Use to Retreat, Crouch+Use to attack or move, and
@@ -111,10 +113,11 @@ the same way; world and raid settings are admin-only and sync from the server.
   button hands a settler a weapon, shield or armor from your inventory —
   their AI fights with the weapon, the armor genuinely reduces damage,
   and everything they wear drops at their corpse if they fall.
-- **Settlement tiers**: Hamlet → Village → Town. Growing population and
-  workstations promote the settlement, raising the settler cap and
-  unlocking bigger builder blueprints, up to the Town-only Stone
-  Great-Hall.
+- **Hearthstone progression**: Camp → Homestead → Hamlet → Village → Hold →
+  Great Hold → Jarl's Seat. Biome-material upgrades raise both the tier
+  population ceiling and the physical radius used by jobs, storage,
+  construction, housing, couriers and raids. Actual capacity remains bounded
+  by beds.
 - **The clanless warlord**: clear enough camps and the clanless answer —
   rival raids can bring a scaled mini-boss. Kill him and your settlement
   earns days of guaranteed peace.
@@ -199,8 +202,7 @@ Edit `BepInEx/config/com.abjumb.vikingsettlements.cfg` (created on first run):
 | Settlers / ChatterIntervalSeconds | 25 | Minimum time between chatter lines |
 | Settlers / TalkHotkey | T | Talk to the settler you're looking at: health, hunger, job needs (client-side) |
 | Recruiting / RecruitCostCoins | 50 | Coins to recruit a settler |
-| Settlement / MaxSettlers | 10 | Max settlers per settlement banner |
-| Settlement / SettlementRadius | 32 | Settlement area radius in meters |
+| Settlement / SettlementRadius | 32 | Compatibility fallback for legacy objects; Hearthstones use 35–200m tier radii |
 | Settlement / WorkIntervalSeconds | 60 | Seconds between settler work ticks |
 | Raids / EnableRaids | true | Enable bandit raid event and rival clan raids |
 | Raids / RaidsAfterFirstBoss | true | Raids only start once Eikthyr is dead |
@@ -221,7 +223,6 @@ Edit `BepInEx/config/com.abjumb.vikingsettlements.cfg` (created on first run):
 | Economy / FamiliesEnabled | true | Settlers can marry: morale together, faster growth, grief on a confirmed loss |
 | Trade / CourierRange | 300 | Max distance to a partner settlement for the Courier job |
 | Trade / CourierAmbushChance | 0.02 | Chance a travelling courier draws a clanless ambush |
-| Progression / TiersEnabled | true | Settlements grow Hamlet -> Village -> Town with tier caps and blueprint gates |
 | Progression / WarlordEnabled | true | Rival raids can bring a warlord after 3+ camps cleared |
 | Progression / WarlordChance | 0.25 | Chance a rival raid includes the warlord |
 | Progression / WarlordPeaceDays | 10 | Days without rival raids after felling a warlord |

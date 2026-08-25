@@ -61,10 +61,11 @@ namespace VikingSettlements.Npcs
         {
             PlayerSettlement best = null;
             var bestDistance = ModConfig.CourierRange.Value;
+            var sourceRadius = PlayerSettlement.WorkRadiusAt(home);
             foreach (var settlement in PlayerSettlement.Instances)
             {
                 var distance = Vector3.Distance(settlement.transform.position, home);
-                if (distance > ModConfig.SettlementRadius.Value && distance <= bestDistance)
+                if (distance > sourceRadius && distance <= bestDistance)
                 {
                     best = settlement;
                     bestDistance = distance;

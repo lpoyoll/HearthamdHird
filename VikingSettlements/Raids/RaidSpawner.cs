@@ -60,7 +60,7 @@ namespace VikingSettlements.Raids
             }
 
             var angle = Random.value * 360f;
-            var distance = ModConfig.SettlementRadius.Value + 12f;
+            var distance = settlement.WorkRadius + 12f;
 
             for (var i = 0; i < count; i++)
             {

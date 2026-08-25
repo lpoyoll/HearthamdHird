@@ -1,5 +1,23 @@
 # Changelog
 
+### Hearth & Hird 0.3 foundation (development branch)
+
+- Replaced the old three-tier, radius-only banner behaviour with the
+  save-compatible Hearthstone: Camp, Homestead, Hamlet, Village, Hold,
+  Great Hold and Jarl's Seat.
+- Added biome-material upgrades with fixed population ceilings from 4 to 64
+  and physical work radii from 35m to 200m.
+- Population now requires unclaimed beds. Overlapping settlements assign each
+  bed to the nearest Hearthstone, so a bed cannot count twice.
+- Added creator-only settlement management and exact ZDO-backed Hearthstone
+  identity on every assigned settler.
+- Added a persistent paged register with job, level, hunger and last known
+  position. Map buttons locate loaded or unloaded settlers.
+- Routed inherited work, storage, construction, housing, family, courier and
+  raid systems through the active Hearthstone tier radius.
+- Explicitly promoted legacy Village and Town progress migrates to Village and
+  Hold. Unmarked old Hamlet banners start as Camps without deleting settlers.
+
 ### Hearth & Hird 0.2 foundation (development branch)
 
 - Added seven craftable Hird Horn tiers from Meadows through Ashlands. The

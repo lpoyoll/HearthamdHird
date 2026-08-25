@@ -28,5 +28,11 @@ namespace HearthAndHird.Network
 
         internal const string HirdCombatStance = "hnh_hird_combat_stance";
         internal const string HirdFormation = "hnh_hird_formation";
+
+        internal const string HearthTier = "hnh_hearth_tier";
+        internal const string HearthOwner = "hnh_hearth_owner";
+        internal const string HearthRegister = "hnh_hearth_register";
+        internal const string SettlerHearthUser = "hnh_settler_hearth_user";
+        internal const string SettlerHearthId = "hnh_settler_hearth_id";
     }
 }

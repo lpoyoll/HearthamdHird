@@ -62,8 +62,7 @@ namespace VikingSettlements.Npcs
             var settler = GetComponent<SettlerRecruitable>();
             if (settler != null && settler.State == SettlerState.Assigned && _character != null)
             {
-                var settlement = PlayerSettlement.FindNearest(
-                    transform.position, ModConfig.SettlementRadius.Value * 2f);
+                var settlement = PlayerSettlement.FindForSettler(settler);
                 if (settlement != null)
                 {
                     settlement.RecordSaga($"{_character.m_name} $vs_saga_fell");
@@ -82,7 +81,7 @@ namespace VikingSettlements.Npcs
             {
                 return;
             }
-            var radius = ModConfig.SettlementRadius.Value * 2f;
+            var radius = PlayerSettlement.WorkRadiusAt(position) * 2f;
             foreach (var settler in SettlerRecruitable.Instances)
             {
                 var family = settler.GetComponent<SettlerFamily>();

@@ -212,8 +212,8 @@ namespace VikingSettlements.Npcs
 
         private void HealPulse()
         {
-            var radius = ModConfig.SettlementRadius.Value;
             var home = _settler.Home;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(home);
             foreach (var other in SettlerRecruitable.Instances)
             {
                 if (other.State != SettlerState.Assigned)
@@ -269,7 +269,7 @@ namespace VikingSettlements.Npcs
             }
             zdo.Set(FeastDayKey, day);
 
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(home);
             if (ModConfig.MoraleEnabled.Value)
             {
                 foreach (var other in SettlerRecruitable.Instances)
@@ -313,7 +313,7 @@ namespace VikingSettlements.Npcs
                 return false;
             }
             var waterLevel = ZoneSystem.instance.m_waterLevel;
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             for (var i = 0; i < 16; i++)
             {
                 var angle = Mathf.PI * 2f * i / 16f;
@@ -342,8 +342,8 @@ namespace VikingSettlements.Npcs
         /// </summary>
         private void EngineerTick(int bonus)
         {
-            var radius = ModConfig.SettlementRadius.Value;
             var home = _settler.Home;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(home);
             Turret neediest = null;
             var neediestFraction = 1f;
             foreach (var turret in FindObjectsOfType<Turret>())
@@ -478,8 +478,8 @@ namespace VikingSettlements.Npcs
 
         private void HerdPen()
         {
-            var radius = ModConfig.SettlementRadius.Value;
             var home = _settler.Home;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(home);
             var animals = new List<Character>();
             foreach (var tameable in FindObjectsOfType<Tameable>())
             {
@@ -572,7 +572,7 @@ namespace VikingSettlements.Npcs
             {
                 return 0;
             }
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             var count = 0;
             foreach (var container in FindObjectsOfType<Container>())
             {
@@ -597,7 +597,7 @@ namespace VikingSettlements.Npcs
             {
                 return 0;
             }
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             var taken = 0;
             foreach (var container in FindObjectsOfType<Container>())
             {
@@ -675,7 +675,7 @@ namespace VikingSettlements.Npcs
                 return true;
             }
 
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             var stacks = new List<(Inventory Inventory, ItemDrop.ItemData Item)>();
             foreach (var container in FindObjectsOfType<Container>())
             {
@@ -745,7 +745,7 @@ namespace VikingSettlements.Npcs
 
         internal static bool HasStationAround(Vector3 center, string nameToken)
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             foreach (var station in FindObjectsOfType<CraftingStation>())
             {
                 if (station.m_name == nameToken
@@ -759,7 +759,7 @@ namespace VikingSettlements.Npcs
 
         internal static bool HasAround<T>(Vector3 center) where T : Component
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             foreach (var component in FindObjectsOfType<T>())
             {
                 if (Vector3.Distance(component.transform.position, center) <= radius)
@@ -773,7 +773,7 @@ namespace VikingSettlements.Npcs
         /// <summary>Food items sitting in settlement chests, without eating any.</summary>
         internal static int CountFoodAround(Vector3 center)
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             var count = 0;
             foreach (var container in FindObjectsOfType<Container>())
             {
@@ -900,7 +900,7 @@ namespace VikingSettlements.Npcs
 
         internal static int CountDamagedAround(Vector3 center)
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             var damaged = 0;
             foreach (var wearNTear in FindObjectsOfType<WearNTear>())
             {
@@ -915,8 +915,8 @@ namespace VikingSettlements.Npcs
 
         private void Repair()
         {
-            var radius = ModConfig.SettlementRadius.Value;
             var home = _settler.Home;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(home);
             var repaired = 0;
             foreach (var wearNTear in FindObjectsOfType<WearNTear>())
             {
@@ -942,7 +942,7 @@ namespace VikingSettlements.Npcs
 
         internal static Container FindStorageAround(Vector3 center, System.Func<Inventory, bool> predicate)
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(center);
             Container best = null;
             var bestDistance = float.MaxValue;
             foreach (var container in FindObjectsOfType<Container>())

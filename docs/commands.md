@@ -47,7 +47,7 @@ Usable with vanilla `spawn <prefab> [count] [stars]` (cheat):
 | `VS_RallyBanner` | The Rally Standard piece (normally built with the hammer) — E rallies your war party to it, Shift+E releases them |
 | `VS_Trader` | The village trader (static NPC; opens his store on interact) |
 | `VS_CampTotem` | A destructible war totem — smashing it counts as clearing a camp |
-| `VS_SettlementBanner` | The settlement banner piece (normally built with the hammer) |
+| `VS_SettlementBanner` | The save-compatible Hearthstone prefab (normally built with the hammer) |
 | `VS_VillageHeart` | The invisible reputation anchor — spawn one at the center of a pre-1.7 village to enable standing there |
 | `VS_BuildChest` | The Builders' Supply Chest piece (normally built with the hammer) |
 | `VS_BuildSite` | A bare construction site marker — has no blueprint assigned, so prefer ordering projects through a builder's talk menu |

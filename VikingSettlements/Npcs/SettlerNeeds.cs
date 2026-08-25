@@ -244,7 +244,7 @@ namespace VikingSettlements.Npcs
 
         private static bool HasTamedAnimal(Vector3 home)
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = Settlements.PlayerSettlement.WorkRadiusAt(home);
             foreach (var tameable in Object.FindObjectsOfType<Tameable>())
             {
                 var animal = tameable.GetComponent<Character>();

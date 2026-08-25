@@ -14,7 +14,6 @@ namespace VikingSettlements
         public static ConfigEntry<bool> ChatterEnabled;
         public static ConfigEntry<float> ChatterInterval;
         public static ConfigEntry<int> RecruitCostCoins;
-        public static ConfigEntry<int> MaxSettlersPerSettlement;
         public static ConfigEntry<float> SettlementRadius;
         public static ConfigEntry<float> WorkIntervalSeconds;
         public static ConfigEntry<bool> EnableRaids;
@@ -50,7 +49,6 @@ namespace VikingSettlements
         public static ConfigEntry<bool> FamiliesEnabled;
         public static ConfigEntry<float> CourierRange;
         public static ConfigEntry<float> CourierAmbushChance;
-        public static ConfigEntry<bool> TiersEnabled;
         public static ConfigEntry<bool> WarlordEnabled;
         public static ConfigEntry<float> WarlordChance;
         public static ConfigEntry<int> WarlordPeaceDays;
@@ -106,16 +104,10 @@ namespace VikingSettlements
                     new AcceptableValueRange<int>(0, 10000),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
-            MaxSettlersPerSettlement = config.Bind("Settlement", "MaxSettlers", 10,
-                new ConfigDescription(
-                    "Maximum settlers that can be assigned to one settlement banner.",
-                    new AcceptableValueRange<int>(1, 50),
-                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
-
             SettlementRadius = config.Bind("Settlement", "SettlementRadius", 32f,
                 new ConfigDescription(
-                    "Radius in meters around a settlement banner that counts as the settlement " +
-                    "(job work area, assignment range, raid target area).",
+                    "Compatibility fallback radius for legacy settlement objects that are not " +
+                    "bound to a Hearthstone. Hearthstones use their tier radius (35-200m).",
                     new AcceptableValueRange<float>(10f, 64f),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
@@ -340,14 +332,6 @@ namespace VikingSettlements
                     "Chance every few seconds that a courier on the open road draws a " +
                     "clanless ambush. 0 disables ambushes.",
                     new AcceptableValueRange<float>(0f, 1f),
-                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
-
-            TiersEnabled = config.Bind("Progression", "TiersEnabled", true,
-                new ConfigDescription(
-                    "Settlements progress Hamlet -> Village -> Town, with tier-scaled " +
-                    "settler caps and tier-gated blueprints. Disabled, every settlement " +
-                    "behaves as a Village.",
-                    null,
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
             WarlordEnabled = config.Bind("Progression", "WarlordEnabled", true,

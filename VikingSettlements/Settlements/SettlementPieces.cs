@@ -1,12 +1,13 @@
 using Jotunn.Configs;
 using Jotunn.Entities;
 using Jotunn.Managers;
+using HearthAndHird.Settlements;
 using UnityEngine;
 
 namespace VikingSettlements.Settlements
 {
     /// <summary>
-    /// Creates the buildable Settlement Banner piece. It is cloned from the
+    /// Creates the buildable Hearthstone piece. It is cloned from the
     /// ward (guard stone), stripped of its ward logic, and given the
     /// PlayerSettlement behavior plus a PlayerBase effect area so Valheim's
     /// native random events treat the settlement as a raid-able base.
@@ -51,16 +52,16 @@ namespace VikingSettlements.Settlements
 
             var piece = new CustomPiece(clone, false, new PieceConfig
             {
-                Name = "$vs_banner",
-                Description = "$vs_banner_desc",
+                Name = "$hnh_hearthstone",
+                Description = "$hnh_hearthstone_desc",
                 PieceTable = "Hammer",
                 Category = "Misc",
                 CraftingStation = "piece_workbench",
                 Requirements = new[]
                 {
                     new RequirementConfig("Wood", 10, 0, true),
-                    new RequirementConfig("FineWood", 4, 0, true),
-                    new RequirementConfig("Coins", 20, 0, true),
+                    new RequirementConfig("Stone", 5, 0, true),
+                    new RequirementConfig("TrophyDeer", 1, 0, true),
                 },
             });
             PieceManager.Instance.AddPiece(piece);
@@ -157,7 +158,7 @@ namespace VikingSettlements.Settlements
 
             var collider = area.AddComponent<SphereCollider>();
             collider.isTrigger = true;
-            collider.radius = ModConfig.SettlementRadius.Value;
+            collider.radius = HearthstoneProgression.Get(1).WorkRadius;
 
             var effectArea = area.AddComponent<EffectArea>();
             effectArea.m_type = EffectArea.Type.PlayerBase;

@@ -31,9 +31,16 @@ preserved, but cannot recruit additional members until capacity catches up.
 
 ## 0.3 — Hearthstone
 
-- Hearthstone placement, ownership and biome upgrades.
-- Bed-bound population capacity.
-- Work radius, settlement register and settler location lookup.
+- [x] Hearthstone placement, creator ownership and seven biome upgrades.
+- [x] Bed-bound population capacity with nearest-Hearthstone bed ownership.
+- [x] Tier work radii used by inherited settlement systems.
+- [x] Persistent settlement register and last-known map lookup.
+
+The save-compatible Hearthstone progresses from Camp (4 settlers, 35m) to
+Jarl's Seat (64 settlers, 200m). Each settler is bound to its exact Hearthstone
+ZDO rather than inferred from an overlapping radius. The management panel
+pages through the persistent register and can pin loaded or unloaded settlers'
+last known positions on the map.
 
 ## 0.4 — Physical work proof
 

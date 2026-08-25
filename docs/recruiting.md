@@ -10,9 +10,9 @@ happens at every step from first hello to assigned job.
 
 1. `vs_find village` → walk there
 2. Press **E** on a villager, pay the coins — they follow you
-3. Walk them inside your Settlement Banner's radius
+3. Build an unclaimed bed and walk them inside your Hearthstone's radius
 4. Press **E** again — they settle there
-5. Press **E** on the banner to give everyone jobs from one screen
+5. Press **E** on the Hearthstone to manage the persistent register
 
 Everything below is the detail.
 
@@ -119,20 +119,19 @@ five things:
 
 ## Settling them in
 
-Stand your follower inside your **Settlement Banner's** radius (32 m by
-default) and press **E**:
+Stand your follower inside a **Hearthstone you founded** and press **E**:
 
 - "*«name» settles here!*" — they stop following, pin their home to the
   banner, and start life as a **Villager** (the do-nothing job).
-- Give them a real job: **E on them** cycles through all ten, or **E on the
-  banner** opens the management panel and does it from one screen.
+- Give them a real job: **E on them** cycles jobs, or **E on the Hearthstone**
+  opens the paged register and does it from one screen.
 - From this moment they **eat from your chests** (once per game day,
   cheapest food first) and earn **1 XP per day of service**.
 
-Two refusals you might hit, both said out loud: "*No settlement banner
-nearby*" (walk closer to the banner) and "*This settlement is full*" (the
-cap is 10 by default — raise `MaxSettlers` in the config, or found a second
-settlement; nothing stops you building two banners far apart).
+Assignment can be refused for three explicit reasons: this is not your
+Hearthstone, the biome tier has reached its population ceiling, or there is no
+spare unclaimed bed. Build housing, upgrade the Hearthstone with the material
+shown on its hover text, or found another settlement.
 
 `Shift+E` on an assigned settler un-assigns them back into a follower — how
 you move people between settlements.
@@ -157,9 +156,9 @@ you move people between settlements.
 
 - Standing is **shared by all players** — your friend's massacre raises
   your prices too.
-- A follower follows **their recruiter** specifically (tracked by player
-  ID). Anyone can assign, dismiss, or re-job them, though — settlement
-  management is communal.
+- A follower follows **their recruiter** specifically. Only that player can
+  dismiss or re-job them, and only the founder can manage or upgrade a
+  Hearthstone.
 - All of this syncs through the world save; there's no per-client state to
   desync.
 
@@ -170,11 +169,12 @@ you move people between settlements.
 | "They refuse to deal with you" | Standing ≤ −50. Donate your way back up |
 | No standing line on hover | Pre-1.7 village — works fine at flat price |
 | Follower stopped following | You got >60 m away or relogged. Walk back within 60 m |
-| "No settlement banner nearby" | You're outside the 32 m radius — move closer |
-| "This settlement is full" | 10-settler cap. Config `MaxSettlers`, or build a second banner |
+| "No Hearthstone founded by you..." | Move inside one of your Hearthstone's current tier radii |
+| "Upgrade the Hearthstone..." | The tier population ceiling is full; provide the shown biome materials |
+| "Build another unclaimed bed..." | Every population slot also needs a bed owned by no player |
 | Can't recruit the trader | By design — he likes his stall |
 | Recruit prompt shows the wrong price | Price updates with standing; donate or misdeeds since your last look moved it |
 
-Config knobs for everything here: `RecruitCostCoins`, `DonationCostCoins`,
-`DonationReputation`, `ReputationEnabled`, `MaxSettlers`,
-`SettlementRadius` — see the [README's configuration table](../README.md#configuration).
+Config knobs for recruiting remain `RecruitCostCoins`, `DonationCostCoins`,
+`DonationReputation` and `ReputationEnabled`. Hearthstone population and work
+radii are fixed progression values — see [Hearthstone settlements](HEARTHSTONE.md).

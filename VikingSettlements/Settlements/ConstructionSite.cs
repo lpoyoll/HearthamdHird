@@ -60,7 +60,7 @@ namespace VikingSettlements.Settlements
 
         internal static ConstructionSite FindNear(Vector3 center)
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = PlayerSettlement.WorkRadiusAt(center);
             foreach (var site in Instances)
             {
                 if (site != null && Vector3.Distance(site.transform.position, center) <= radius)
@@ -171,7 +171,7 @@ namespace VikingSettlements.Settlements
                 return;
             }
             if (Vector3.Distance(player.transform.position, transform.position)
-                > ModConfig.SettlementRadius.Value + 30f)
+                > PlayerSettlement.WorkRadiusAt(transform.position) + 30f)
             {
                 _supplyTimer = 0f;
                 return;
@@ -222,7 +222,7 @@ namespace VikingSettlements.Settlements
 
         private bool HasBuilder()
         {
-            var radius = ModConfig.SettlementRadius.Value;
+            var radius = PlayerSettlement.WorkRadiusAt(transform.position);
             foreach (var settler in SettlerRecruitable.Instances)
             {
                 if (settler.State == SettlerState.Assigned

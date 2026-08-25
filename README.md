@@ -147,14 +147,13 @@ wild settlements:
    plaza of every meadows village: one posting per day — deliver goods
    the village needs, or break the war totem of a named clan's camp —
    paying coins on the spot plus standing.
-2. **Found a settlement** — build the *Settlement Banner* (hammer → Misc,
-   near a workbench; wood, fine wood and coins). The banner defines a
-   settlement area (default 32 m radius) and shows its population on hover.
-   Press `E` on the banner to open the **management panel** — every settler
-   listed with name, rank, job and hunger, with buttons to reassign jobs
-   from one screen. `Shift+E` (or the panel's Rename button) **names your
-   settlement** with the same text dialog signs use.
-3. **Assign** — with a follower inside the banner's area, press `E` to settle
+2. **Found a settlement** — build the *Hearthstone* (hammer → Misc, near a
+   workbench; 10 wood, 5 stone and a deer trophy). Its founder owns it. A Camp
+   supports up to four settlers inside 35 m, provided each has an unclaimed
+   bed. Biome-material upgrades eventually reach Jarl's Seat: 64 settlers and
+   a 200 m work radius. Press `E` for the persistent paged register and map
+   lookup; `Shift+E` names the settlement.
+3. **Assign** — with a follower inside your Hearthstone's area, press `E` to settle
    them there. Press `E` again to cycle their job, `Shift+E` to unassign.
    Every job runs on the work tick (default every 60 s) and needs the settler
    fed; producers need a chest with room in the radius, converters need
@@ -322,8 +321,7 @@ Edit `BepInEx/config/com.abjumb.vikingsettlements.cfg` (created on first run):
 | Settlers / ChatterIntervalSeconds | 25 | Minimum time between chatter lines |
 | Settlers / TalkHotkey | T | Talk to the settler you're looking at: health, hunger, job needs (client-side) |
 | Recruiting / RecruitCostCoins | 50 | Coins to recruit a settler |
-| Settlement / MaxSettlers | 10 | Max settlers per settlement banner |
-| Settlement / SettlementRadius | 32 | Settlement area radius in meters |
+| Settlement / SettlementRadius | 32 | Compatibility fallback for legacy objects; Hearthstones use 35–200m tier radii |
 | Settlement / WorkIntervalSeconds | 60 | Seconds between settler work ticks |
 | Raids / EnableRaids | true | Enable the bandit raid event and rival clan raids |
 | Raids / RaidsAfterFirstBoss | true | Raids only start once Eikthyr is dead |
@@ -344,7 +342,6 @@ Edit `BepInEx/config/com.abjumb.vikingsettlements.cfg` (created on first run):
 | Economy / FamiliesEnabled | true | Settlers can marry: morale together, faster growth, grief on a confirmed loss |
 | Trade / CourierRange | 300 | Max distance to a partner settlement for the Courier job |
 | Trade / CourierAmbushChance | 0.02 | Chance a travelling courier draws a clanless ambush |
-| Progression / TiersEnabled | true | Settlements grow Hamlet -> Village -> Town with tier caps and blueprint gates |
 | Progression / WarlordEnabled | true | Rival raids can bring a warlord after 3+ camps cleared |
 | Progression / WarlordChance | 0.25 | Chance a rival raid includes the warlord |
 | Progression / WarlordPeaceDays | 10 | Days without rival raids after felling a warlord |

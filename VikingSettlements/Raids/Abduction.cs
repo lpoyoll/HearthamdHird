@@ -250,7 +250,7 @@ namespace VikingSettlements.Raids
 
             var center = settlement.transform.position;
             var angle = Random.value * 360f * Mathf.Deg2Rad;
-            var distance = ModConfig.SettlementRadius.Value + 4f;
+            var distance = settlement.WorkRadius + 4f;
             var position = center + new Vector3(
                 Mathf.Sin(angle) * distance, 0f, Mathf.Cos(angle) * distance);
             if (ZoneSystem.instance != null)

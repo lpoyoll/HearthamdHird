@@ -64,30 +64,30 @@ Recruit two or three to start. They follow you like a tamed wolf, so you can
 walk them home. Don't march them through a swamp at night — they fight, but
 they can die, and **dead settlers don't come back**.
 
-## Step 3 — Build the banner
+## Step 3 — Build the Hearthstone
 
 Pick your spot. Anywhere works, but flat ground near your base is ideal.
 
-Stand near a **workbench**, open the hammer, and find **Settlement Banner**
+Stand near a **workbench**, open the hammer, and find **Hearthstone**
 under the **Misc** tab.
 
 ```
-Settlement Banner — 10 Wood, 4 Fine Wood, 20 Coins
+Hearthstone — 10 Wood, 5 Stone, 1 Deer Trophy
 ```
 
-Place it. That's your settlement founded. Everything within **32 metres** of the
-banner is now part of it — that's roughly a 15-floor-tile radius, comfortably
-big enough for a starter base.
+Place it. You are now its founder. The initial Camp covers **35 metres** and
+has a tier ceiling of four settlers. Each settler also needs an unclaimed bed,
+so build the housing before trying to assign them.
 
-Hover the banner any time to see who lives there and what they're doing.
-**Press `E` on the banner** to open the management panel — every settler with
-their rank, job and hunger, and `<` / `>` buttons to reassign jobs from one
-screen. **`Shift+E` names your settlement** (signs-style text box); the name
-shows on the banner and for everyone on your server.
+Hover the Hearthstone to see its tier, beds, population, radius and next
+upgrade. **Press `E`** to open the persistent register — every settler with
+their rank, job, hunger and last-location Map button. **`Shift+E` names your
+settlement**. Only the founder can manage or upgrade it.
 
 ## Step 4 — Move your settlers in
 
-With a follower standing inside that 32 m radius, **press `E` on them**. You'll
+With a follower standing inside that 35 m radius and a spare bed available,
+**press `E` on them**. You'll
 get "*settles here!*" and they'll stop following you and stay put.
 
 A settlement holds **10 settlers** by default.
@@ -270,8 +270,8 @@ Order a building .............. T on a builder, stand where it goes
 Assign a home ................. T on a door
 Cancel a construction site .... Shift + E on the site
 
-Settlement Banner ............. Hammer -> Misc  (10 wood, 4 fine wood, 20 coins)
-Settlement radius ............. 32 m
+Hearthstone ................... Hammer -> Misc  (10 wood, 5 stone, 1 deer trophy)
+Camp work radius .............. 35 m (upgrades to 200 m)
 Max settlers .................. 10
 Work tick ..................... every 60 seconds
 Meals ......................... 1 food per settler per ~game day, cheapest first
@@ -284,7 +284,7 @@ Growth ........................ spare unclaimed bed + 3 food + below cap
 |---|---|
 | No villages anywhere | You're in terrain generated before you installed the mod. Explore somewhere new |
 | No banner in the hammer menu | You need to be near a workbench, and it's under **Misc** |
-| Follower "waits here" instead of settling | You pressed E away from any banner, which posts a party member. Walk them inside the 32 m radius and press E again |
+| Follower "waits here" instead of settling | You pressed E outside your Hearthstone, which posts a party member. Walk inside its current radius and press E again |
 | Settlers work but nothing appears | No chest inside the radius, or every chest is full |
 | A settler stopped working | Probably hungry — check the hover text, stock food in a chest |
 | Blacksmith or builder does nothing | They need a forge / workbench inside the radius |

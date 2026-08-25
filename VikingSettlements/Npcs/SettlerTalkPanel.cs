@@ -75,8 +75,8 @@ namespace VikingSettlements.Npcs
             var door = FindDoorTarget(player);
             if (door != null)
             {
-                var settlement = PlayerSettlement.FindNearest(
-                    door.transform.position, ModConfig.SettlementRadius.Value);
+                var settlement = PlayerSettlement.FindOwnedContaining(
+                    door.transform.position, player.GetPlayerID());
                 if (settlement != null)
                 {
                     HomeAssignPanel.Open(door, settlement);
@@ -238,8 +238,7 @@ namespace VikingSettlements.Npcs
 
         private static List<Blueprint> UnlockedBlueprints()
         {
-            var settlement = PlayerSettlement.FindNearest(
-                _settler.Home, ModConfig.SettlementRadius.Value);
+            var settlement = PlayerSettlement.FindForSettler(_settler);
             var tier = settlement != null ? settlement.Tier : 1;
             var unlocked = new List<Blueprint>();
             foreach (var blueprint in Blueprints.All)
@@ -305,14 +304,15 @@ namespace VikingSettlements.Npcs
                     Localization.instance.Localize("$vs_bp_busy"));
                 return;
             }
-            var settlement = PlayerSettlement.FindNearest(home, ModConfig.SettlementRadius.Value);
+            var settlement = PlayerSettlement.FindForSettler(settler);
             if (blueprint.MinTier > (settlement != null ? settlement.Tier : 1))
             {
                 player.Message(MessageHud.MessageType.Center,
                     Localization.instance.Localize("$vs_bp_locked"));
                 return;
             }
-            if (Vector3.Distance(player.transform.position, home) > ModConfig.SettlementRadius.Value)
+            if (settlement == null
+                || Vector3.Distance(player.transform.position, home) > settlement.WorkRadius)
             {
                 player.Message(MessageHud.MessageType.Center,
                     Localization.instance.Localize("$vs_bp_outside"));

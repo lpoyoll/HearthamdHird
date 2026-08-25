@@ -1,11 +1,17 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
+using HearthAndHird.Network;
+using HearthAndHird.Settlements;
 using UnityEngine;
 using VikingSettlements.Npcs;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 namespace VikingSettlements.Settlements
 {
     /// <summary>
-    /// Placed on the buildable settlement banner. Defines a player settlement:
+    /// Placed on the buildable Hearthstone. Defines a player settlement:
     /// settlers get assigned to it, its area counts as a player base for
     /// Valheim's native raid events, and rival clans roll a nightly raid
     /// against it while its area is loaded.
@@ -24,7 +30,22 @@ namespace VikingSettlements.Settlements
         public static readonly List<PlayerSettlement> Instances = new List<PlayerSettlement>();
 
         private ZNetView _nview;
+        private Piece _piece;
         private float _captiveTimer;
+        private float _nextBedScan;
+        private int _cachedBeds;
+        private int _appliedTier;
+
+        internal sealed class RegisterEntry
+        {
+            internal ZDOID Id;
+            internal string Name;
+            internal SettlerJob Job;
+            internal Vector3 Position;
+            internal bool Hungry;
+            internal int Level = 1;
+            internal SettlerRecruitable LoadedSettler;
+        }
 
         /// <summary>The banner's network view, for systems that keep state on it (abductions).</summary>
         internal ZNetView View => _nview;
@@ -32,6 +53,8 @@ namespace VikingSettlements.Settlements
         private void Awake()
         {
             _nview = GetComponent<ZNetView>();
+            _piece = GetComponent<Piece>();
+            RefreshPlayerBaseArea();
         }
 
         private void OnEnable()
@@ -60,15 +83,79 @@ namespace VikingSettlements.Settlements
             return best;
         }
 
-        /// <summary>The loaded settlers assigned to this settlement, sorted by name.</summary>
+        /// <summary>The nearest Hearthstone whose current work area contains this point.</summary>
+        internal static PlayerSettlement FindContaining(Vector3 position)
+        {
+            PlayerSettlement best = null;
+            var bestDistance = float.MaxValue;
+            foreach (var settlement in Instances)
+            {
+                var distance = Vector3.Distance(settlement.transform.position, position);
+                if (distance <= settlement.WorkRadius && distance < bestDistance)
+                {
+                    best = settlement;
+                    bestDistance = distance;
+                }
+            }
+            return best;
+        }
+
+        internal static PlayerSettlement FindOwnedContaining(Vector3 position, long playerId)
+        {
+            PlayerSettlement best = null;
+            var bestDistance = float.MaxValue;
+            foreach (var settlement in Instances)
+            {
+                var distance = Vector3.Distance(settlement.transform.position, position);
+                if (settlement.OwnerId == playerId && distance <= settlement.WorkRadius
+                    && distance < bestDistance)
+                {
+                    best = settlement;
+                    bestDistance = distance;
+                }
+            }
+            return best;
+        }
+
+        internal static float WorkRadiusAt(Vector3 settlementCenter)
+        {
+            var settlement = FindNearest(settlementCenter, HearthstoneProgression.MaxRadius + 1f);
+            return settlement != null
+                ? settlement.WorkRadius
+                : ModConfig.SettlementRadius.Value;
+        }
+
+        internal static PlayerSettlement FindForSettler(SettlerRecruitable settler)
+        {
+            if (settler == null)
+            {
+                return null;
+            }
+            foreach (var settlement in Instances)
+            {
+                if (settler.BelongsTo(settlement))
+                {
+                    return settlement;
+                }
+            }
+            if (settler.HasHearthstone)
+            {
+                return null;
+            }
+            // Save migration: old assigned settlers only stored a home point.
+            return FindContaining(settler.Home);
+        }
+
+        /// <summary>The loaded settlers assigned to this exact Hearthstone, sorted by name.</summary>
         internal List<SettlerRecruitable> GetSettlers()
         {
-            var radius = ModConfig.SettlementRadius.Value;
             var settlers = new List<SettlerRecruitable>();
             foreach (var settler in SettlerRecruitable.Instances)
             {
                 if (settler.State == SettlerState.Assigned
-                    && Vector3.Distance(settler.Home, transform.position) <= radius)
+                    && (settler.BelongsTo(this)
+                        || (!settler.HasHearthstone
+                            && FindContaining(settler.Home) == this)))
                 {
                     settlers.Add(settler);
                 }
@@ -79,38 +166,70 @@ namespace VikingSettlements.Settlements
 
         public int CountAssignedSettlers()
         {
-            return GetSettlers().Count;
+            return GetRegisterEntries().Count;
         }
 
-        /// <summary>Hamlet (1) → Village (2) → Town (3). Permanent once earned.</summary>
-        internal int Tier => !ModConfig.TiersEnabled.Value ? 2
-            : _nview != null && _nview.IsValid()
-                ? Mathf.Clamp(_nview.GetZDO().GetInt(TierKey, 1), 1, 3)
-                : 1;
+        internal ZDOID Id => _nview != null && _nview.IsValid()
+            ? _nview.GetZDO().m_uid
+            : ZDOID.None;
 
-        /// <summary>The settler cap for the current tier (config value = Village).</summary>
-        internal int SettlerCap
+        internal long OwnerId
         {
             get
             {
-                var baseline = ModConfig.MaxSettlersPerSettlement.Value;
-                switch (Tier)
+                if (_nview == null || !_nview.IsValid())
                 {
-                    case 1: return Mathf.Max(3, baseline * 3 / 5);
-                    case 3: return baseline + baseline / 2;
-                    default: return baseline;
+                    return 0L;
                 }
+                var stored = _nview.GetZDO().GetLong(HearthZdoKeys.HearthOwner);
+                return stored != 0L || _piece == null ? stored : _piece.GetCreator();
             }
         }
 
+        /// <summary>Camp (1) through Jarl's Seat (7), upgraded explicitly by biome materials.</summary>
+        internal int Tier
+        {
+            get
+            {
+                if (_nview == null || !_nview.IsValid())
+                {
+                    return 1;
+                }
+                var tier = _nview.GetZDO().GetInt(HearthZdoKeys.HearthTier, -1);
+                if (tier >= 1)
+                {
+                    return Mathf.Clamp(tier, 1, HearthstoneProgression.MaxTier);
+                }
+                // Legacy three-tier banners map Hamlet/Village/Town to
+                // Hamlet/Village/Hold without losing their earned progress.
+                var legacy = _nview.GetZDO().GetInt(TierKey, -1);
+                return legacy >= 1 ? Mathf.Clamp(legacy + 2, 1, 5) : 1;
+            }
+        }
+
+        internal int TierPopulationCap => HearthstoneProgression.Get(Tier).Population;
+
+        internal float WorkRadius => HearthstoneProgression.Get(Tier).WorkRadius;
+
+        internal int BedCapacity
+        {
+            get
+            {
+                if (Time.time >= _nextBedScan)
+                {
+                    _nextBedScan = Time.time + 2f;
+                    _cachedBeds = CountAvailableBeds();
+                }
+                return _cachedBeds;
+            }
+        }
+
+        /// <summary>Population is constrained by both tier ceiling and unclaimed beds.</summary>
+        internal int SettlerCap => Mathf.Min(TierPopulationCap, BedCapacity);
+
         internal static string TierToken(int tier)
         {
-            switch (tier)
-            {
-                case 3: return "$vs_tier3";
-                case 2: return "$vs_tier2";
-                default: return "$vs_tier1";
-            }
+            return HearthstoneProgression.Get(tier).NameToken;
         }
 
         /// <summary>Whether rival raids are suspended (warlord recently slain).</summary>
@@ -175,10 +294,147 @@ namespace VikingSettlements.Settlements
             return result;
         }
 
+        /// <summary>
+        /// Persistent settlement register. Live settlers refresh their entry,
+        /// while unloaded settlers retain their last known job and position.
+        /// </summary>
+        internal List<RegisterEntry> GetRegisterEntries()
+        {
+            var entries = ReadRegister();
+            foreach (var settler in GetSettlers())
+            {
+                MergeLive(entries, settler);
+            }
+            entries.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
+            return entries;
+        }
+
+        internal void UpdateRegister(SettlerRecruitable settler)
+        {
+            if (settler == null || _nview == null || !_nview.IsValid() || !_nview.IsOwner())
+            {
+                return;
+            }
+            var entries = ReadRegister();
+            MergeLive(entries, settler);
+            WriteRegister(entries);
+        }
+
+        internal void RemoveFromRegister(ZDOID id)
+        {
+            if (id == ZDOID.None || _nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            var entries = ReadRegister();
+            entries.RemoveAll(entry => entry.Id == id);
+            WriteRegister(entries);
+        }
+
+        private List<RegisterEntry> ReadRegister()
+        {
+            var result = new List<RegisterEntry>();
+            if (_nview == null || !_nview.IsValid())
+            {
+                return result;
+            }
+            var raw = _nview.GetZDO().GetString(HearthZdoKeys.HearthRegister);
+            foreach (var record in raw.Split(new[] { ';' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                var fields = record.Split('|');
+                if (fields.Length < 9 || fields[0] != "R1")
+                {
+                    continue;
+                }
+                var id = fields[1].Split(':');
+                if (id.Length != 2
+                    || !long.TryParse(id[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var user)
+                    || !uint.TryParse(id[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var number)
+                    || !int.TryParse(fields[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out var job)
+                    || !float.TryParse(fields[4], NumberStyles.Float, CultureInfo.InvariantCulture, out var x)
+                    || !float.TryParse(fields[5], NumberStyles.Float, CultureInfo.InvariantCulture, out var y)
+                    || !float.TryParse(fields[6], NumberStyles.Float, CultureInfo.InvariantCulture, out var z)
+                    || !int.TryParse(fields[8], NumberStyles.Integer, CultureInfo.InvariantCulture, out var level))
+                {
+                    continue;
+                }
+                result.Add(new RegisterEntry
+                {
+                    Id = new ZDOID(user, number),
+                    Name = fields[2],
+                    Job = (SettlerJob)Mathf.Clamp(job, 0, SettlerRecruitable.JobCount - 1),
+                    Position = new Vector3(x, y, z),
+                    Hungry = fields[7] == "1",
+                    Level = Mathf.Max(1, level),
+                });
+            }
+            return result;
+        }
+
+        private void WriteRegister(List<RegisterEntry> entries)
+        {
+            if (_nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            var records = new List<string>();
+            foreach (var entry in entries)
+            {
+                if (entry.Id == ZDOID.None)
+                {
+                    continue;
+                }
+                records.Add(string.Join("|",
+                    "R1",
+                    entry.Id.UserID.ToString(CultureInfo.InvariantCulture)
+                        + ":" + entry.Id.ID.ToString(CultureInfo.InvariantCulture),
+                    SanitizeRegisterText(entry.Name),
+                    ((int)entry.Job).ToString(CultureInfo.InvariantCulture),
+                    entry.Position.x.ToString("R", CultureInfo.InvariantCulture),
+                    entry.Position.y.ToString("R", CultureInfo.InvariantCulture),
+                    entry.Position.z.ToString("R", CultureInfo.InvariantCulture),
+                    entry.Hungry ? "1" : "0",
+                    Mathf.Max(1, entry.Level).ToString(CultureInfo.InvariantCulture)));
+            }
+            _nview.GetZDO().Set(HearthZdoKeys.HearthRegister, string.Join(";", records));
+        }
+
+        private static void MergeLive(List<RegisterEntry> entries, SettlerRecruitable settler)
+        {
+            var view = settler != null ? settler.GetComponent<ZNetView>() : null;
+            if (view == null || !view.IsValid())
+            {
+                return;
+            }
+            var id = view.GetZDO().m_uid;
+            var entry = entries.Find(existing => existing.Id == id);
+            if (entry == null)
+            {
+                entry = new RegisterEntry { Id = id };
+                entries.Add(entry);
+            }
+            var character = settler.GetComponent<Character>();
+            entry.Name = character != null ? character.m_name : settler.GetHoverName();
+            entry.Job = settler.Job;
+            entry.Position = settler.transform.position;
+            entry.Hungry = settler.IsHungry;
+            entry.Level = character != null ? character.GetLevel() : 1;
+            entry.LoadedSettler = settler;
+        }
+
+        private static string SanitizeRegisterText(string value)
+        {
+            return string.IsNullOrEmpty(value)
+                ? "$vs_settler"
+                : value.Replace('|', '/').Replace(';', ',').Replace('\n', ' ');
+        }
+
         private Dictionary<SettlerJob, int> CountJobs()
         {
             var jobs = new Dictionary<SettlerJob, int>();
-            foreach (var settler in GetSettlers())
+            foreach (var settler in GetRegisterEntries())
             {
                 jobs.TryGetValue(settler.Job, out var count);
                 jobs[settler.Job] = count + 1;
@@ -195,7 +451,7 @@ namespace VikingSettlements.Settlements
                     ? _nview.GetZDO().GetString(NameKey)
                     : "";
                 return string.IsNullOrEmpty(name)
-                    ? Localization.instance.Localize("$vs_banner")
+                    ? Localization.instance.Localize("$hnh_hearthstone")
                     : name;
             }
         }
@@ -211,6 +467,11 @@ namespace VikingSettlements.Settlements
             {
                 return;
             }
+            var player = Player.m_localPlayer;
+            if (player == null || !CanManage(player))
+            {
+                return;
+            }
             text = text == null ? "" : text.Trim();
             if (text.Length > NameCharLimit)
             {
@@ -222,7 +483,15 @@ namespace VikingSettlements.Settlements
 
         private void Update()
         {
-            if (_nview == null || !_nview.IsValid() || !_nview.IsOwner())
+            if (_nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            if (_appliedTier != Tier)
+            {
+                RefreshPlayerBaseArea();
+            }
+            if (!_nview.IsOwner())
             {
                 return;
             }
@@ -230,6 +499,8 @@ namespace VikingSettlements.Settlements
             {
                 return;
             }
+
+            EnsureOwner();
 
             // Captives don't wait for nightfall: rescue (or loss) resolves
             // within moments of the totem falling or the deadline passing.
@@ -256,7 +527,6 @@ namespace VikingSettlements.Settlements
 
             RollRaid(day);
             TryGrow();
-            TryPromote();
             Npcs.SettlerFamily.NightlyTick(this);
         }
 
@@ -316,47 +586,6 @@ namespace VikingSettlements.Settlements
             return false;
         }
 
-        // Promotion is a head-count and infrastructure check, once per night:
-        // Hamlet -> Village needs people and a workbench; Village -> Town
-        // needs a real population and a forge. Tiers never regress.
-        private void TryPromote()
-        {
-            if (!ModConfig.TiersEnabled.Value || _nview == null || !_nview.IsValid())
-            {
-                return;
-            }
-            var tier = Mathf.Clamp(_nview.GetZDO().GetInt(TierKey, 1), 1, 3);
-            var assigned = CountAssignedSettlers();
-            var baseline = ModConfig.MaxSettlersPerSettlement.Value;
-            var promoted = false;
-            if (tier == 1 && assigned >= Mathf.Max(4, baseline / 2)
-                && SettlerWork.HasStationAround(transform.position, "$piece_workbench"))
-            {
-                tier = 2;
-                promoted = true;
-            }
-            else if (tier == 2 && assigned >= Mathf.Max(6, baseline * 4 / 5)
-                && SettlerWork.HasStationAround(transform.position, "$piece_forge"))
-            {
-                tier = 3;
-                promoted = true;
-            }
-            if (!promoted)
-            {
-                return;
-            }
-            _nview.GetZDO().Set(TierKey, tier);
-            RecordSaga($"$vs_saga_promoted {TierToken(tier)}");
-            var player = Player.m_localPlayer;
-            if (player != null
-                && Vector3.Distance(player.transform.position, transform.position) < 50f)
-            {
-                player.Message(MessageHud.MessageType.Center,
-                    Localization.instance.Localize(
-                        $"{DisplayName} $vs_promoted {TierToken(tier)}!"));
-            }
-        }
-
         /// <summary>
         /// A settlement below its cap attracts a newcomer if it has a spare
         /// unclaimed bed and enough food in its chests to feed one.
@@ -380,7 +609,7 @@ namespace VikingSettlements.Settlements
             {
                 return;
             }
-            if (CountUnclaimedBeds() < assigned + 1)
+            if (BedCapacity < assigned + 1)
             {
                 return; // every settler notionally needs a bed, plus one spare
             }
@@ -392,19 +621,60 @@ namespace VikingSettlements.Settlements
             SpawnNewcomer(couples > 0 && Random.value < 0.5f);
         }
 
-        private int CountUnclaimedBeds()
+        private int CountAvailableBeds()
         {
-            var radius = ModConfig.SettlementRadius.Value;
             var count = 0;
             foreach (var bed in FindObjectsOfType<Bed>())
             {
                 if (bed.GetOwner() == 0L
-                    && Vector3.Distance(bed.transform.position, transform.position) <= radius)
+                    && Vector3.Distance(bed.transform.position, transform.position) <= WorkRadius
+                    && FindContaining(bed.transform.position) == this)
                 {
                     count++;
                 }
             }
             return count;
+        }
+
+        internal bool CanManage(Player player)
+        {
+            if (player == null || _nview == null || !_nview.IsValid())
+            {
+                return false;
+            }
+            var owner = OwnerId;
+            if (owner == 0L)
+            {
+                _nview.ClaimOwnership();
+                _nview.GetZDO().Set(HearthZdoKeys.HearthOwner, player.GetPlayerID());
+                return true;
+            }
+            return owner == player.GetPlayerID();
+        }
+
+        private void EnsureOwner()
+        {
+            if (_nview == null || !_nview.IsValid()
+                || _nview.GetZDO().GetLong(HearthZdoKeys.HearthOwner) != 0L)
+            {
+                return;
+            }
+            var creator = _piece != null ? _piece.GetCreator() : 0L;
+            if (creator != 0L)
+            {
+                _nview.GetZDO().Set(HearthZdoKeys.HearthOwner, creator);
+            }
+        }
+
+        private void RefreshPlayerBaseArea()
+        {
+            var area = transform.Find("VS_PlayerBaseArea");
+            var collider = area != null ? area.GetComponent<SphereCollider>() : null;
+            if (collider != null)
+            {
+                collider.radius = WorkRadius;
+            }
+            _appliedTier = Tier;
         }
 
         private void SpawnNewcomer(bool bornHere = false)
@@ -420,7 +690,7 @@ namespace VikingSettlements.Settlements
 
             var center = transform.position;
             var angle = Random.value * 360f * Mathf.Deg2Rad;
-            var distance = ModConfig.SettlementRadius.Value + 6f;
+            var distance = WorkRadius + 6f;
             var position = center + new Vector3(Mathf.Sin(angle) * distance, 0f, Mathf.Cos(angle) * distance);
             if (ZoneSystem.instance != null)
             {
@@ -437,6 +707,13 @@ namespace VikingSettlements.Settlements
                 view.GetZDO().Set(SettlerRecruitable.StateKey, (int)SettlerState.Assigned);
                 view.GetZDO().Set(SettlerRecruitable.JobKey, (int)SettlerJob.Villager);
                 view.GetZDO().Set(SettlerRecruitable.HomeKey, center);
+                view.GetZDO().Set(SettlerRecruitable.OwnerKey, OwnerId);
+            }
+            var recruitable = newcomer.GetComponent<SettlerRecruitable>();
+            if (recruitable != null)
+            {
+                recruitable.BindSettlement(this);
+                UpdateRegister(recruitable);
             }
             var ai = newcomer.GetComponent<MonsterAI>();
             if (ai != null)
@@ -468,31 +745,38 @@ namespace VikingSettlements.Settlements
         public string GetHoverText()
         {
             var jobs = CountJobs();
-            var total = 0;
+            var total = CountAssignedSettlers();
             var parts = new List<string>();
             foreach (var pair in jobs)
             {
-                total += pair.Value;
                 parts.Add($"{pair.Value} {SettlerRecruitable.JobToken(pair.Key)}");
             }
             var breakdown = parts.Count > 0 ? "\n" + string.Join(", ", parts) : "";
 
-            var radius = ModConfig.SettlementRadius.Value;
             var hungry = 0;
             foreach (var settler in SettlerRecruitable.Instances)
             {
                 if (settler.State == SettlerState.Assigned
                     && settler.IsHungry
-                    && Vector3.Distance(settler.Home, transform.position) <= radius)
+                    && (settler.BelongsTo(this)
+                        || (!settler.HasHearthstone && FindContaining(settler.Home) == this)))
                 {
                     hungry++;
                 }
             }
             var hungryLine = hungry > 0 ? $"\n$vs_hungry: {hungry}" : "";
+            var next = HearthstoneProgression.Next(Tier);
+            var upgradeLine = next != null
+                ? $"\n$hnh_hearth_upgrade: {next.NameToken} — "
+                    + HearthstoneProgression.UpgradeRequirements(next)
+                : "\n$hnh_hearth_max";
 
             return Localization.instance.Localize(
                 $"{DisplayName} ({TierToken(Tier)})"
-                + $"\n$vs_settlers: {total}/{SettlerCap}{breakdown}{hungryLine}"
+                + $"\n$vs_settlers: {total}/{SettlerCap}"
+                + $" — $hnh_beds: {BedCapacity}/{TierPopulationCap}"
+                + $"\n$hnh_work_radius: {WorkRadius:0}m{breakdown}{hungryLine}"
+                + upgradeLine
                 + Raids.Abduction.HoverLine(this)
                 + "\n[<color=yellow><b>$KEY_Use</b></color>] $vs_manage"
                 + "\n[<color=yellow><b>$KEY_AltPlace + $KEY_Use</b></color>] $vs_rename");
@@ -509,6 +793,12 @@ namespace VikingSettlements.Settlements
             {
                 return false;
             }
+            if (!CanManage(player))
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$hnh_hearth_not_owner"));
+                return true;
+            }
             if (alt)
             {
                 if (TextInput.instance != null)
@@ -523,7 +813,43 @@ namespace VikingSettlements.Settlements
 
         public bool UseItem(Humanoid user, ItemDrop.ItemData item)
         {
-            return false;
+            var player = user as Player;
+            if (player == null || item == null)
+            {
+                return false;
+            }
+            if (!CanManage(player))
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$hnh_hearth_not_owner"));
+                return true;
+            }
+            var next = HearthstoneProgression.Next(Tier);
+            if (next == null)
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize("$hnh_hearth_max"));
+                return true;
+            }
+            if (!HearthstoneProgression.MatchesUpgradeItem(next, item))
+            {
+                return false;
+            }
+            if (!HearthstoneProgression.CanPay(player, next, out var missing))
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize($"$hnh_hearth_need {missing}"));
+                return true;
+            }
+            HearthstoneProgression.Pay(player, next);
+            _nview.ClaimOwnership();
+            _nview.GetZDO().Set(HearthZdoKeys.HearthTier, next.Tier);
+            _nview.GetZDO().Set(TierKey, next.Tier);
+            RefreshPlayerBaseArea();
+            RecordSaga($"$vs_saga_promoted {next.NameToken}");
+            player.Message(MessageHud.MessageType.Center,
+                Localization.instance.Localize($"{DisplayName} $vs_promoted {next.NameToken}!"));
+            return true;
         }
     }
 }

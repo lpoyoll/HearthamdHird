@@ -15,7 +15,7 @@ namespace VikingSettlements.Settlements
     /// </summary>
     internal static class SettlementPanel
     {
-        private const float PanelWidth = 720f;
+        private const float PanelWidth = 780f;
         private const float HeaderHeight = 96f;
         private const float ColumnHeaderHeight = 26f;
         private const float RowHeight = 48f;
@@ -24,6 +24,7 @@ namespace VikingSettlements.Settlements
 
         private static GameObject _panel;
         private static PlayerSettlement _settlement;
+        private static int _page;
 
         internal static bool IsOpen => _panel != null;
 
@@ -33,6 +34,10 @@ namespace VikingSettlements.Settlements
             {
                 Close();
                 return;
+            }
+            if (_settlement != settlement)
+            {
+                _page = 0;
             }
             Open(settlement);
         }
@@ -69,10 +74,14 @@ namespace VikingSettlements.Settlements
 
         private static void Build()
         {
-            var settlers = _settlement.GetSettlers();
-            var rows = Mathf.Min(settlers.Count, MaxRows);
+            var settlers = _settlement.GetRegisterEntries();
+            var pages = Mathf.Max(1, Mathf.CeilToInt((float)settlers.Count / MaxRows));
+            _page = Mathf.Clamp(_page, 0, pages - 1);
+            var first = _page * MaxRows;
+            var rows = Mathf.Min(Mathf.Max(0, settlers.Count - first), MaxRows);
+            var layoutRows = settlers.Count > MaxRows ? MaxRows : Mathf.Max(1, rows);
             var height = HeaderHeight + ColumnHeaderHeight
-                + Mathf.Max(1, rows) * RowHeight
+                + layoutRows * RowHeight
                 + (settlers.Count > MaxRows ? 22f : 0f)
                 + FooterHeight;
 
@@ -95,21 +104,37 @@ namespace VikingSettlements.Settlements
             }
             for (var i = 0; i < rows; i++)
             {
-                BuildRow(settlers[i], -(HeaderHeight + ColumnHeaderHeight + RowHeight * i + RowHeight / 2f));
+                BuildRow(settlers[first + i],
+                    -(HeaderHeight + ColumnHeaderHeight + RowHeight * i + RowHeight / 2f));
             }
             if (settlers.Count > MaxRows)
             {
-                var more = Text($"+{settlers.Count - MaxRows}",
+                var pageY = -(HeaderHeight + ColumnHeaderHeight + RowHeight * MaxRows + 10f);
+                var more = Text(Localization.instance.Localize(
+                        $"$hnh_page {_page + 1}/{pages}"),
                     new Vector2(0.5f, 1f),
-                    new Vector2(0f, -(HeaderHeight + ColumnHeaderHeight + RowHeight * MaxRows + 10f)),
+                    new Vector2(0f, pageY),
                     14, UiPalette.SecondaryOnWood, 200f, 20f);
                 more.alignment = TextAnchor.MiddleCenter;
+
+                var previous = GUIManager.Instance.CreateButton(
+                    "<", _panel.transform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                    new Vector2(-78f, pageY), 32f, 22f);
+                previous.GetComponent<Button>().interactable = _page > 0;
+                previous.GetComponent<Button>().onClick.AddListener(() => ChangePage(-1));
+
+                var next = GUIManager.Instance.CreateButton(
+                    ">", _panel.transform, new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                    new Vector2(78f, pageY), 32f, 22f);
+                next.GetComponent<Button>().interactable = _page < pages - 1;
+                next.GetComponent<Button>().onClick.AddListener(() => ChangePage(1));
             }
 
             BuildFooter();
         }
 
-        private static void BuildHeader(System.Collections.Generic.List<SettlerRecruitable> settlers)
+        private static void BuildHeader(
+            System.Collections.Generic.List<PlayerSettlement.RegisterEntry> settlers)
         {
             // Title, left-aligned over the content column.
             var title = Text(_settlement.DisplayName,
@@ -123,13 +148,14 @@ namespace VikingSettlements.Settlements
             var capacity = _settlement.SettlerCap;
             var countText = Text(
                 Localization.instance.Localize(
-                    $"{PlayerSettlement.TierToken(_settlement.Tier)} — $vs_settlers {count}/{capacity}"),
-                new Vector2(0f, 1f), new Vector2(26f + 115f, -68f),
-                15, UiPalette.Beige, 230f, 22f);
+                    $"{PlayerSettlement.TierToken(_settlement.Tier)} — $vs_settlers {count}/{capacity}"
+                    + $" — $hnh_beds {_settlement.BedCapacity}/{_settlement.TierPopulationCap}"),
+                new Vector2(0f, 1f), new Vector2(26f + 165f, -68f),
+                15, UiPalette.Beige, 330f, 22f);
             countText.alignment = TextAnchor.MiddleLeft;
 
             var barAnchor = new Vector2(0f, 1f);
-            var barLeft = 26f + 230f + 16f;
+            var barLeft = 26f + 330f + 16f;
             UiPalette.CreateRect(_panel.transform, barAnchor, new Vector2(barLeft + 75f, -68f), 150f, 8f, UiPalette.BarTrack);
             var fillWidth = capacity > 0 ? 150f * Mathf.Clamp01((float)count / capacity) : 0f;
             if (fillWidth > 0f)
@@ -141,7 +167,7 @@ namespace VikingSettlements.Settlements
             var hungryCount = 0;
             foreach (var settler in settlers)
             {
-                if (settler.IsHungry)
+                if (settler.Hungry)
                 {
                     hungryCount++;
                 }
@@ -177,19 +203,22 @@ namespace VikingSettlements.Settlements
                 new Vector2(0f, 1f), new Vector2(26f + 80f, y), 12, UiPalette.ColumnHeader, 160f, 18f);
             settlerHeader.alignment = TextAnchor.MiddleLeft;
             var jobHeader = Text(Localization.instance.Localize("$vs_col_job"),
-                new Vector2(1f, 1f), new Vector2(-108f - 105f, y), 12, UiPalette.ColumnHeader, 210f, 18f);
+                new Vector2(1f, 1f), new Vector2(-178f - 105f, y), 12, UiPalette.ColumnHeader, 210f, 18f);
             jobHeader.alignment = TextAnchor.MiddleLeft;
             var statusHeader = Text(Localization.instance.Localize("$vs_col_status"),
-                new Vector2(1f, 1f), new Vector2(-26f - 35f, y), 12, UiPalette.ColumnHeader, 70f, 18f);
+                new Vector2(1f, 1f), new Vector2(-90f - 36f, y), 12, UiPalette.ColumnHeader, 72f, 18f);
             statusHeader.alignment = TextAnchor.MiddleRight;
+            var locateHeader = Text(Localization.instance.Localize("$hnh_locate"),
+                new Vector2(1f, 1f), new Vector2(-26f - 32f, y), 12, UiPalette.ColumnHeader, 64f, 18f);
+            locateHeader.alignment = TextAnchor.MiddleCenter;
         }
 
-        private static void BuildRow(SettlerRecruitable settler, float y)
+        private static void BuildRow(PlayerSettlement.RegisterEntry entry, float y)
         {
             var anchorLeft = new Vector2(0f, 1f);
             var anchorRight = new Vector2(1f, 1f);
-            var character = settler.GetComponent<Character>();
-            var level = character != null ? character.GetLevel() : 1;
+            var settler = entry.LoadedSettler;
+            var level = Mathf.Max(1, entry.Level);
 
             // Level badge on button wood.
             UiPalette.CreateRect(_panel.transform, anchorLeft, new Vector2(26f + 26f, y), 52f, 34f, UiPalette.BadgeWood);
@@ -199,7 +228,7 @@ namespace VikingSettlements.Settlements
             // Name with rank stars, rank line beneath (the rank has its own
             // line here, so use the bare name rather than the hover name).
             var stars = level >= 3 ? " <color=#FFE300>★★</color>" : level == 2 ? " <color=#FFE300>★</color>" : "";
-            var bareName = character != null ? character.m_name : settler.GetHoverName();
+            var bareName = !string.IsNullOrEmpty(entry.Name) ? entry.Name : "$vs_settler";
             var name = Text(Localization.instance.Localize(bareName) + stars,
                 anchorLeft, new Vector2(96f + 120f, y - 8f), 17, Color.white, 240f, 24f);
             name.alignment = TextAnchor.MiddleLeft;
@@ -210,25 +239,36 @@ namespace VikingSettlements.Settlements
 
             // Job stepper: < [well] >
             var prevButton = GUIManager.Instance.CreateButton(
-                "<", _panel.transform, anchorRight, anchorRight, new Vector2(-304f, y), 28f, 28f);
-            prevButton.GetComponent<Button>().onClick.AddListener(() => ChangeJob(settler, -1));
+                "<", _panel.transform, anchorRight, anchorRight, new Vector2(-374f, y), 28f, 28f);
+            prevButton.GetComponent<Button>().interactable = settler != null;
+            prevButton.GetComponent<Button>().onClick.AddListener(() => ChangeJob(entry, -1));
 
-            UiPalette.CreateRect(_panel.transform, anchorRight, new Vector2(-208f, y), 148f, 28f, UiPalette.WellDark);
-            var job = Text(Localization.instance.Localize(SettlerRecruitable.JobToken(settler.Job)),
-                anchorRight, new Vector2(-208f, y), 15, UiPalette.Beige, 148f, 22f);
+            UiPalette.CreateRect(_panel.transform, anchorRight, new Vector2(-278f, y), 148f, 28f, UiPalette.WellDark);
+            var job = Text(Localization.instance.Localize(SettlerRecruitable.JobToken(entry.Job)),
+                anchorRight, new Vector2(-278f, y), 15, UiPalette.Beige, 148f, 22f);
             job.alignment = TextAnchor.MiddleCenter;
 
             var nextButton = GUIManager.Instance.CreateButton(
-                ">", _panel.transform, anchorRight, anchorRight, new Vector2(-112f, y), 28f, 28f);
-            nextButton.GetComponent<Button>().onClick.AddListener(() => ChangeJob(settler, 1));
+                ">", _panel.transform, anchorRight, anchorRight, new Vector2(-182f, y), 28f, 28f);
+            nextButton.GetComponent<Button>().interactable = settler != null;
+            nextButton.GetComponent<Button>().onClick.AddListener(() => ChangeJob(entry, 1));
 
             // Status column.
-            var hungry = settler.IsHungry;
+            var hungry = entry.Hungry;
+            var statusToken = hungry
+                ? "$vs_status_hungry"
+                : settler != null ? "$hnh_status_here" : "$hnh_status_away";
             var status = Text(
-                Localization.instance.Localize(hungry ? "$vs_status_hungry" : "$vs_status_working"),
-                anchorRight, new Vector2(-26f - 35f, y), 14,
-                hungry ? UiPalette.Warning : UiPalette.WorkingGreen, 70f, 20f);
+                Localization.instance.Localize(statusToken),
+                anchorRight, new Vector2(-90f - 36f, y), 14,
+                hungry ? UiPalette.Warning : UiPalette.WorkingGreen, 72f, 20f);
             status.alignment = TextAnchor.MiddleRight;
+
+            var locateButton = GUIManager.Instance.CreateButton(
+                Localization.instance.Localize("$hnh_locate_short"),
+                _panel.transform, anchorRight, anchorRight,
+                new Vector2(-26f - 32f, y), 64f, 28f);
+            locateButton.GetComponent<Button>().onClick.AddListener(() => Locate(entry));
         }
 
         private static void BuildFooter()
@@ -266,8 +306,9 @@ namespace VikingSettlements.Settlements
             return go.GetComponent<Text>();
         }
 
-        private static void ChangeJob(SettlerRecruitable settler, int direction)
+        private static void ChangeJob(PlayerSettlement.RegisterEntry entry, int direction)
         {
+            var settler = entry != null ? entry.LoadedSettler : null;
             if (settler == null)
             {
                 Rebuild();
@@ -276,6 +317,32 @@ namespace VikingSettlements.Settlements
             var count = SettlerRecruitable.JobCount;
             var next = (SettlerJob)((((int)settler.Job + direction) % count + count) % count);
             settler.SetJob(next);
+            Rebuild();
+        }
+
+        private static void Locate(PlayerSettlement.RegisterEntry entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+            if (Minimap.instance != null)
+            {
+                Minimap.instance.AddPin(entry.Position, Minimap.PinType.Icon1,
+                    entry.Name, true, false);
+            }
+            var player = Player.m_localPlayer;
+            if (player != null)
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize($"$hnh_location_marked {entry.Name}"));
+            }
+            Close();
+        }
+
+        private static void ChangePage(int direction)
+        {
+            _page = Mathf.Max(0, _page + direction);
             Rebuild();
         }
 
