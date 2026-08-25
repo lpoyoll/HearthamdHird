@@ -21,6 +21,12 @@ namespace VikingSettlements.Npcs
             "Vigdis", "Yrsa", "Arnbjorg", "Halvar", "Solveig", "Sten",
         };
 
+        internal static string GenerateName(ZDOID id)
+        {
+            var index = (int)((uint)id.GetHashCode() % (uint)Names.Length);
+            return Names[index];
+        }
+
         private void Start()
         {
             var character = GetComponent<Character>();
@@ -37,9 +43,7 @@ namespace VikingSettlements.Npcs
                 return;
             }
 
-            var seed = view.GetZDO().m_uid.GetHashCode();
-            var index = (int)((uint)seed % (uint)Names.Length);
-            character.m_name = Names[index];
+            character.m_name = GenerateName(view.GetZDO().m_uid);
             if (view.IsOwner())
             {
                 view.GetZDO().Set(NameKey, character.m_name);

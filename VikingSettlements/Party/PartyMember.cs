@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
+using HearthAndHird.AI;
+using HearthAndHird.NPC;
 using UnityEngine;
 using VikingSettlements.Npcs;
 
@@ -24,6 +26,7 @@ namespace VikingSettlements.Party
         private Character _character;
         private MonsterAI _ai;
         private SettlerRecruitable _settler;
+        private SettlerDirectiveState _directives;
         private float _lastDamageTime = -1000f;
         private float _nextTick;
         private bool _autoFellBack;
@@ -42,6 +45,7 @@ namespace VikingSettlements.Party
             _character = GetComponent<Character>();
             _ai = GetComponent<MonsterAI>();
             _settler = GetComponent<SettlerRecruitable>();
+            _directives = GetComponent<SettlerDirectiveState>();
             if (_character != null)
             {
                 _character.m_onDamaged += OnDamaged;
@@ -235,6 +239,9 @@ namespace VikingSettlements.Party
             }
             _nview.ClaimOwnership();
             _nview.GetZDO().Set(PartySystem.StanceKey, (int)stance);
+            _directives?.ApplyLegacy(SettlerDirectiveState.FromPartyStance(stance),
+                stance == PartyStance.Hold ? transform.position : Vector3.zero,
+                issuerId: owner != null ? owner.GetPlayerID() : RecruiterId);
             if (_ai == null)
             {
                 return;
@@ -262,6 +269,8 @@ namespace VikingSettlements.Party
         internal void RallyTo(Vector3 position, Player owner)
         {
             SetStance(PartyStance.Hold, owner);
+            _directives?.ApplyLegacy(SettlerDirectiveKind.Hold, position,
+                issuerId: owner != null ? owner.GetPlayerID() : RecruiterId);
             if (_ai != null)
             {
                 _ai.SetPatrolPoint(position);
@@ -282,6 +291,8 @@ namespace VikingSettlements.Party
             }
             _ai.m_targetCreature = target;
             _ai.Alert();
+            _directives?.ApplyLegacy(SettlerDirectiveKind.Attack, target.transform.position,
+                target.m_name, RecruiterId);
         }
 
         internal void MarkMember(Player owner)
@@ -294,6 +305,8 @@ namespace VikingSettlements.Party
             var zdo = _nview.GetZDO();
             zdo.Set(PartySystem.PartyKey, true);
             zdo.Set(PartySystem.StanceKey, (int)PartyStance.Follow);
+            _directives?.ApplyLegacy(SettlerDirectiveKind.Follow, Vector3.zero,
+                issuerId: owner != null ? owner.GetPlayerID() : RecruiterId);
             if (_ai != null && owner != null)
             {
                 _ai.SetFollowTarget(owner.gameObject);
@@ -340,7 +353,7 @@ namespace VikingSettlements.Party
             var level = _character != null ? _character.GetLevel() : 1;
             var zdo = _nview.GetZDO();
             var xp = zdo.GetInt(SettlerVeterancy.XpKey);
-            var fields = new[]
+            var fields = new List<string>
             {
                 "S", prefabName, MemberName,
                 hp.ToString("F1", CultureInfo.InvariantCulture),
@@ -352,6 +365,7 @@ namespace VikingSettlements.Party
                 zdo.GetString(SettlerEquipment.SlotKeys[3]),
                 zdo.GetString(SettlerEquipment.SlotKeys[4]),
             };
+            GetComponent<SettlerProfile>()?.AppendStowFields(fields);
             return string.Join("|", fields);
         }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using HearthAndHird.AI;
 using UnityEngine;
 using VikingSettlements.Settlements;
 
@@ -48,6 +49,7 @@ namespace VikingSettlements.Npcs
         private Humanoid _character;
         private MonsterAI _ai;
         private Party.PartyMember _member;
+        private SettlerDirectiveState _directives;
         private float _baseAlertRange = -1f;
 
         private void Awake()
@@ -56,6 +58,7 @@ namespace VikingSettlements.Npcs
             _character = GetComponent<Humanoid>();
             _ai = GetComponent<MonsterAI>();
             _member = GetComponent<Party.PartyMember>();
+            _directives = GetComponent<SettlerDirectiveState>();
         }
 
         private void OnEnable()
@@ -328,6 +331,8 @@ namespace VikingSettlements.Npcs
 
             _nview.GetZDO().Set(OwnerKey, player.GetPlayerID());
             State = SettlerState.Following;
+            _directives?.ApplyLegacy(SettlerDirectiveKind.Follow, transform.position,
+                issuerId: player.GetPlayerID());
             if (_ai != null)
             {
                 _ai.SetFollowTarget(player.gameObject);
@@ -381,6 +386,7 @@ namespace VikingSettlements.Npcs
                 _member.ClearMember();
             }
             State = SettlerState.Wild;
+            _directives?.ApplyLegacy(SettlerDirectiveKind.Idle, transform.position);
             _nview.GetZDO().Set(OwnerKey, 0L);
             if (_ai != null)
             {
@@ -414,6 +420,8 @@ namespace VikingSettlements.Npcs
             State = SettlerState.Assigned;
             Job = SettlerJob.Villager;
             _nview.GetZDO().Set(HomeKey, settlement.transform.position);
+            _directives?.ApplyLegacy(SettlerDirectiveKind.Idle, settlement.transform.position,
+                issuerId: player.GetPlayerID());
             if (_ai != null)
             {
                 _ai.SetFollowTarget(null);
@@ -435,6 +443,8 @@ namespace VikingSettlements.Npcs
             State = SettlerState.Following;
             Job = SettlerJob.Villager;
             _nview.GetZDO().Set(OwnerKey, player.GetPlayerID());
+            _directives?.ApplyLegacy(SettlerDirectiveKind.Follow, transform.position,
+                issuerId: player.GetPlayerID());
             if (_ai != null)
             {
                 _ai.SetFollowTarget(player.gameObject);
@@ -482,6 +492,8 @@ namespace VikingSettlements.Npcs
                 }
             }
             Job = job;
+            _directives?.ApplyLegacy(SettlerDirectiveState.FromJob(job), Home,
+                SettlerDirectiveState.WorkIdFor(job), RecruiterId);
             if (_ai != null)
             {
                 // Re-pin to the settlement so job changes never leave stale follow state.

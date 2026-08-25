@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using Jotunn.Managers;
+using HearthAndHird.NPC;
 using UnityEngine;
 using VikingSettlements.Npcs;
 
@@ -611,6 +612,7 @@ namespace VikingSettlements.Party
             {
                 zdo.Set(SettlerEquipment.SlotKeys[slot], parts[6 + slot]);
             }
+            SettlerProfile.RestoreStowFields(zdo, parts, 6 + SettlerEquipment.SlotCount);
 
             var character = spawned.GetComponent<Character>();
             if (character != null)

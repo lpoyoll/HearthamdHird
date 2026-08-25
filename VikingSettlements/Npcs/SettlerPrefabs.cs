@@ -112,6 +112,9 @@ namespace VikingSettlements.Npcs
             }
 
             clone.AddComponent<SettlerIdentity>();
+            clone.AddComponent<HearthAndHird.NPC.SettlerProfile>();
+            clone.AddComponent<HearthAndHird.AI.SettlerDirectiveState>();
+            clone.AddComponent<HearthAndHird.Jobs.SettlerTaskBrain>();
             clone.AddComponent<SettlerChatter>();
             clone.AddComponent<SettlerHome>();
             clone.AddComponent<SettlerRecruitable>();

@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using HearthAndHird.AI;
+using HearthAndHird.Jobs;
 using UnityEngine;
 
 namespace VikingSettlements.Npcs
@@ -94,6 +96,11 @@ namespace VikingSettlements.Npcs
             var bonus = moraleValue >= SettlerMorale.CheerfulAt ? 1 : 0;
 
             var gated = ModConfig.RequireWorkstations.Value;
+            var workId = SettlerDirectiveState.WorkIdFor(_settler.Job);
+            if (SettlerTaskRegistry.HasHandler(workId))
+            {
+                return; // the modular physical task owns this job
+            }
             switch (_settler.Job)
             {
                 case SettlerJob.Lumberjack:
