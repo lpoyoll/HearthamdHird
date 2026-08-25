@@ -7,6 +7,7 @@ using UnityEngine.UI;
 using VikingSettlements.Npcs;
 using VikingSettlements.Party;
 using VikingSettlements.Settlements;
+using VikingSettlements.World;
 
 namespace VikingSettlements.Development
 {
@@ -14,7 +15,7 @@ namespace VikingSettlements.Development
     internal static class HearthAndHirdTestPanel
     {
         private const float PanelWidth = 920f;
-        private const float PanelHeight = 820f;
+        private const float PanelHeight = 880f;
 
         private static readonly string[] ObjectNames = { "Settler", "Seer", "Hearthstone" };
         private static readonly string[] StateNames = { "Wild", "Hird follower", "Assigned settler" };
@@ -126,39 +127,45 @@ namespace VikingSettlements.Development
             _previewText = preview.GetComponent<Text>();
             Button("SPAWN", 315f, -314f, SpawnConfigured, 180f, 48f);
 
-            Section("Selected unit", -385f);
-            Label(SelectedStatus(), -405f, -418f, 15, Color.white, 810f,
+            Section("Quick world spawns", -365f);
+            Button("SPAWN HEARTHSTONE", -170f, -397f,
+                () => SpawnHearthstone(Player.m_localPlayer), 290f, 40f);
+            Button("SPAWN START VILLAGE", 170f, -397f,
+                SpawnNeutralStartVillage, 290f, 40f);
+
+            Section("Selected unit", -440f);
+            Label(SelectedStatus(), -405f, -473f, 15, Color.white, 810f,
                 TextAnchor.UpperLeft, false, 46f);
-            Button("Previous", -320f, -472f, () => SelectRelative(-1), 140f);
-            Button("Nearest", -160f, -472f, SelectNearest, 140f);
-            Button("Next", 0f, -472f, () => SelectRelative(1), 140f);
-            Button("Teleport here", 160f, -472f, TeleportSelected, 140f);
-            Button("Open gear", 320f, -472f, OpenGear, 140f);
+            Button("Previous", -320f, -527f, () => SelectRelative(-1), 140f);
+            Button("Nearest", -160f, -527f, SelectNearest, 140f);
+            Button("Next", 0f, -527f, () => SelectRelative(1), 140f);
+            Button("Teleport here", 160f, -527f, TeleportSelected, 140f);
+            Button("Open gear", 320f, -527f, OpenGear, 140f);
 
-            Button("Make wild", -320f, -517f, () => SetSelectedState(SettlerState.Wild), 140f);
-            Button("Join Hird", -160f, -517f, () => SetSelectedState(SettlerState.Following), 140f);
-            Button("Assign", 0f, -517f, () => SetSelectedState(SettlerState.Assigned), 140f);
-            Button("Previous job", 160f, -517f, () => CycleJob(-1), 140f);
-            Button("Next job", 320f, -517f, () => CycleJob(1), 140f);
-            Button("Selected follow", -320f, -557f, () => OrderSelected(PartyStance.Follow), 140f);
-            Button("Selected hold", -160f, -557f, () => OrderSelected(PartyStance.Hold), 140f);
-            Button("Selected retreat", 0f, -557f, () => OrderSelected(PartyStance.Fallback), 140f);
-            Button("Level down", 180f, -557f, () => ChangeLevel(-1), 140f);
-            Button("Level up", 340f, -557f, () => ChangeLevel(1), 140f);
+            Button("Make wild", -320f, -572f, () => SetSelectedState(SettlerState.Wild), 140f);
+            Button("Join Hird", -160f, -572f, () => SetSelectedState(SettlerState.Following), 140f);
+            Button("Assign", 0f, -572f, () => SetSelectedState(SettlerState.Assigned), 140f);
+            Button("Previous job", 160f, -572f, () => CycleJob(-1), 140f);
+            Button("Next job", 320f, -572f, () => CycleJob(1), 140f);
+            Button("Selected follow", -320f, -612f, () => OrderSelected(PartyStance.Follow), 140f);
+            Button("Selected hold", -160f, -612f, () => OrderSelected(PartyStance.Hold), 140f);
+            Button("Selected retreat", 0f, -612f, () => OrderSelected(PartyStance.Fallback), 140f);
+            Button("Level down", 180f, -612f, () => ChangeLevel(-1), 140f);
+            Button("Level up", 340f, -612f, () => ChangeLevel(1), 140f);
 
-            Section("Whole local Hird", -604f);
-            Button("All follow", -320f, -637f, () => OrderAll(PartyStance.Follow), 140f);
-            Button("All hold", -160f, -637f, () => OrderAll(PartyStance.Hold), 140f);
-            Button("All retreat", 0f, -637f, () => OrderAll(PartyStance.Fallback), 140f);
-            Button("Formation", 160f, -637f, CycleFormation, 140f);
-            Button("Combat stance", 320f, -637f, CycleCombatStance, 140f);
+            Section("Whole local Hird", -659f);
+            Button("All follow", -320f, -692f, () => OrderAll(PartyStance.Follow), 140f);
+            Button("All hold", -160f, -692f, () => OrderAll(PartyStance.Hold), 140f);
+            Button("All retreat", 0f, -692f, () => OrderAll(PartyStance.Fallback), 140f);
+            Button("Formation", 160f, -692f, CycleFormation, 140f);
+            Button("Combat stance", 320f, -692f, CycleCombatStance, 140f);
 
-            Section("Cleanup", -682f);
-            Button("DISBAND ALL HIRD", -240f, -721f, DisbandAllHird, 220f, 40f);
-            Button("DESPAWN TEST OBJECTS", 0f, -721f, DespawnTestObjects, 220f, 40f);
-            Button("Close", 240f, -721f, Close, 180f, 40f);
+            Section("Cleanup", -737f);
+            Button("DISBAND ALL HIRD", -240f, -776f, DisbandAllHird, 220f, 40f);
+            Button("DESPAWN TEST OBJECTS", 0f, -776f, DespawnTestObjects, 220f, 40f);
+            Button("Close", 240f, -776f, Close, 180f, 40f);
             Label("Despawn removes only units and Hearthstones created by this panel. Disband releases your entire local Hird.",
-                -405f, -772f, 14, new Color(0.78f, 0.73f, 0.63f), 810f,
+                -405f, -827f, 14, new Color(0.78f, 0.73f, 0.63f), 810f,
                 TextAnchor.MiddleCenter, false, 24f);
         }
 
@@ -325,6 +332,10 @@ namespace VikingSettlements.Development
 
         private static void SpawnHearthstone(Player player)
         {
+            if (!TestAuthority.IsHost || player == null)
+            {
+                return;
+            }
             var prefab = PrefabManager.Instance.GetPrefab(SettlementPieces.Banner);
             if (prefab == null)
             {
@@ -344,6 +355,43 @@ namespace VikingSettlements.Development
             }
             player.Message(MessageHud.MessageType.Center,
                 "Spawned a Camp-tier Hearthstone founded by you.");
+            Rebuild();
+        }
+
+        private static void SpawnNeutralStartVillage()
+        {
+            var player = Player.m_localPlayer;
+            if (!TestAuthority.IsHost || player == null || ZoneSystem.instance == null)
+            {
+                return;
+            }
+            if (!ZoneSystem.instance.GetLocationIcon("StartTemple", out var start))
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    "The world-start location is not available yet.");
+                return;
+            }
+            if (Vector3.Distance(player.transform.position, start) > 300f)
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    "Travel within 300 metres of the first spawn before creating the test village.");
+                return;
+            }
+
+            var origin = start + Vector3.right * 75f;
+            origin.y = ZoneSystem.instance.GetGroundHeight(origin);
+            if (VillageHeart.FindNearest(origin, 55f) != null)
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    "A neutral village already exists beside the first spawn.");
+                return;
+            }
+            var facing = start - origin;
+            facing.y = 0f;
+            var rotation = Quaternion.LookRotation(facing, Vector3.up);
+            var placed = LayoutBuilder.BuildAt(origin, rotation, Layouts.NeutralStartVillage());
+            player.Message(MessageHud.MessageType.Center,
+                $"Created a 16-settler neutral test village near the first spawn ({placed} objects).");
             Rebuild();
         }
 

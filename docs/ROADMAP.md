@@ -1,6 +1,6 @@
 # Hearth & Hird roadmap
 
-## 0.1 — Human settler foundation
+## 0.1.0 — Human settler foundation
 
 - [x] Preserve VikingSettlements save and multiplayer behaviour.
 - [x] Add persistent generated profile and aptitude data.
@@ -14,7 +14,7 @@
 adapter deliberately retains the original compatibility visual when required
 vanilla Player anchors cannot be mapped after a Valheim update.
 
-## 0.2 — Hird commands
+## 0.2.0 — Recruitment and Hird commands
 
 - [x] Seven craftable Hird Horn tiers with biome-based follower caps (2–12).
 - [x] Horn-issued follow, hold, focused attack and retreat orders.
@@ -29,7 +29,7 @@ block+crouch-use defends the aimed point. J cycles formations and K cycles
 combat stance while a horn is carried. Existing over-cap parties are
 preserved, but cannot recruit additional members until capacity catches up.
 
-## 0.3 — Hearthstone
+## 0.3.0 — Hearthstone
 
 - [x] Hearthstone placement, creator ownership and seven biome upgrades.
 - [x] Bed-bound population capacity with nearest-Hearthstone bed ownership.
@@ -42,7 +42,7 @@ ZDO rather than inferred from an overlapping radius. The management panel
 pages through the persistent register and can pin loaded or unloaded settlers'
 last known positions on the map.
 
-## 0.4 — Physical work proof
+## 0.4.0 — Physical Lumberjack and Hauler proof
 
 - Forestry work area and tree filters.
 - Target reservation and path recovery.
@@ -55,15 +55,26 @@ last known positions on the map.
 
 | Version | Milestone |
 | --- | --- |
-| 0.5 | Guard posts, patrol paths and combat orders |
-| 0.6 | Mining, gathering and farming |
-| 0.7 | Storage rules and production chains |
-| 0.8 | Equipment, skills and progression |
-| 0.9 | Blueprint construction and builder AI |
-| 1.0 | Morale, raids, balance and multiplayer hardening |
-| 1.1 | Multiple player settlements, couriers and physical caravans |
-| 1.2 | Living NPC clan settlements, reputation, trade, alliances, rivalries, tribute, war and joint defence |
+| 0.5.0 | Guard posts, patrol paths and combat orders |
+| 0.6.0 | Mining, gathering and farming |
+| 0.7.0 | Storage rules and production chains |
+| 0.8.0 | Equipment, skills and NPC progression |
+| 0.9.0 | Blueprint construction and Builder AI |
+| 1.0.0 | Morale, raids, balancing and multiplayer hardening |
+| 1.1.0 | Hunting, fishing, animal keeping and wilderness specialist jobs |
+| 1.2.0 | Multiple player settlements, couriers, carts and physical caravans |
+| 1.3.0 | Living NPC clan settlements, independent reputation, trade, alliances, rivalries, tribute, war and joint defence |
+| 1.4.0 | Villager friendships, rivalries, partners, spouses, households, grief and social memory |
+| 1.5.0 | Children and generations: family trees, inherited traits and configurable growth into adult settlers |
+| 1.6.0 | Deeper daily life: home routines, mead-hall gatherings, celebrations, ceremonies and memorials |
 
-The 1.2 diplomacy milestone is deliberately design-only at present. Its NPC
-settlements should be physical places in the world, with persistent political
-relationships and alliance choices rather than a menu-only faction system.
+The current build now contains the first narrow foundation for 1.3.0: every
+wild settlement heart stores a separate relationship for each player, and a
+village attacked by that player defends itself without making every other
+settlement hostile. Alliances, trade, wars and inter-settlement politics remain
+design-only.
+
+Relationships and children deliberately sit after the 1.0.0 stability gate.
+They should create memorable households and emergent stories without turning
+Valheim into a heavy needs simulator. Children will be configurable and use a
+lightweight growth abstraction rather than requiring full adult AI from birth.

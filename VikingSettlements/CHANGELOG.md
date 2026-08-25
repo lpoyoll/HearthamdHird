@@ -1,5 +1,22 @@
 # Changelog
 
+### 1.13.4
+
+- Added permanent, clearly labelled **Spawn Hearthstone** and **Spawn Start
+  Village** buttons to the F7 muster, independently of the object dropdown.
+- Added a 16-resident neutral Meadows test village placed 75 metres from the
+  first spawn. The host must be within 300 metres, and duplicate village hearts
+  are rejected.
+- Wild settlers and the rest of their village now fight back against an
+  attacking player for two minutes. A hated village remains hostile, while
+  unrelated villages remain neutral.
+- Ordinary wild villagers now carry a Player-rig-compatible club, replacing
+  the removed Dvergr crossbow so retaliation has a usable melee attack.
+- Replaced village-wide shared standing with persistent per-village,
+  per-player reputation, retaining the old value as a save-migration default.
+- Expanded and renumbered the canonical roadmap through post-1.0 diplomacy,
+  household relationships, spouses, children, generations and daily life.
+
 ### 1.13.3
 
 - Corrected the derivative's release identity: the package now installs as

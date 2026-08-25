@@ -35,9 +35,9 @@ recruitment. That last part matters — see "Recruit veterans" below.
 
 ## Village standing — the price you'll pay
 
-Every village (generated since v1.7) tracks a shared **standing** toward
-players, from −100 to +100. It shows on every villager's hover text, and it
-directly sets the recruit price:
+Every village (generated since v1.7) tracks a separate **standing** toward
+each player, from −100 to +100. It shows on every villager's hover text, and
+it directly sets that player's recruit price:
 
 | Standing | Threshold | Recruit cost (at default 50) |
 |---|---|---|
@@ -62,8 +62,8 @@ directly sets the recruit price:
 
 **Lowering it:**
 
-- Hitting a villager: **−5** (and they'll fight back — the whole village
-  aggravates, vanilla-style)
+- Hitting a villager: **−5** (that village fights the attacker for two
+  minutes; unrelated villages remain neutral)
 - Killing one: **−25**
 - Each recruit: **−2** — the village notices its people leaving
 
@@ -154,8 +154,8 @@ you move people between settlements.
 
 ## Multiplayer notes
 
-- Standing is **shared by all players** — your friend's massacre raises
-  your prices too.
+- Standing is **per player and per village** — your friend's actions do not
+  change your prices, and angering one village does not anger another.
 - A follower follows **their recruiter** specifically. Only that player can
   dismiss or re-job them, and only the founder can manage or upgrade a
   Hearthstone.

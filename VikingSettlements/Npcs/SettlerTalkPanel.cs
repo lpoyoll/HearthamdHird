@@ -355,7 +355,8 @@ namespace VikingSettlements.Npcs
                     var heart = VillageHeart.FindNearest(_settler.transform.position);
                     if (heart != null && ModConfig.ReputationEnabled.Value)
                     {
-                        role += $" — $vs_rep: {VillageHeart.TierToken(heart.Reputation)}";
+                        var reputation = heart.ReputationFor(Player.m_localPlayer);
+                        role += $" — $vs_rep: {VillageHeart.TierToken(reputation)}";
                     }
                     break;
                 case SettlerState.Following:

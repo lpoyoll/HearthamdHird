@@ -15,7 +15,7 @@ namespace VikingSettlements
     {
         public const string PluginGUID = "com.abjumb.vikingsettlements";
         public const string PluginName = "Hearth & Hird";
-        public const string PluginVersion = "1.13.3";
+        public const string PluginVersion = "1.13.4";
 
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
 

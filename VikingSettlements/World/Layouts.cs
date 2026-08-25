@@ -365,6 +365,36 @@ namespace VikingSettlements.World
             return v;
         }
 
+        /// <summary>
+        /// Development settlement placed near the world start by the F7
+        /// muster. It extends the normal Meadows village to sixteen neutral
+        /// residents so combat, reputation and crowd behaviour can be tested.
+        /// </summary>
+        public static SettlementLayout NeutralStartVillage()
+        {
+            var village = MeadowsVillage();
+            village.Place(Cabin(), -15f, -13f, 45f);
+            village.Place(Cabin(), 16f, -15f, 315f);
+            village.Place(Cabin(), -17f, 0f, 90f);
+
+            foreach (var settler in new[]
+            {
+                (x: -14f, z: -9f, rot: 60f),
+                (x: -10f, z: -13f, rot: 25f),
+                (x: -5f, z: -12f, rot: 350f),
+                (x: 5f, z: -13f, rot: 190f),
+                (x: 11f, z: -14f, rot: 220f),
+                (x: 15f, z: -9f, rot: 270f),
+                (x: -14f, z: 5f, rot: 90f),
+                (x: 14f, z: 4f, rot: 270f),
+                (x: 5f, z: 6f, rot: 180f),
+            })
+            {
+                village.Add(SettlerPrefabs.Settler, settler.x, 0f, settler.z, settler.rot);
+            }
+            return village;
+        }
+
         /// <summary>A small fortified black forest outpost with three settlers.</summary>
         public static SettlementLayout ForestOutpost()
         {

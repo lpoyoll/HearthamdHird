@@ -414,7 +414,7 @@ namespace VikingSettlements.Npcs
                         text = $"{name}\n[<color=yellow><b>$KEY_Use</b></color>] $vs_recruit ({ModConfig.RecruitCostCoins.Value} $item_coins)";
                         break;
                     }
-                    var rep = heart.Reputation;
+                    var rep = heart.ReputationFor(Player.m_localPlayer);
                     var standing = $"$vs_rep: {VillageHeart.TierToken(rep)}";
                     var donate = $"\n[<color=yellow><b>$KEY_AltPlace + $KEY_Use</b></color>] $vs_donate ({ModConfig.DonationCostCoins.Value} $item_coins)";
                     if (VillageHeart.RefusesRecruits(rep))
@@ -520,13 +520,14 @@ namespace VikingSettlements.Npcs
             var cost = ModConfig.RecruitCostCoins.Value;
             if (heart != null)
             {
-                if (VillageHeart.RefusesRecruits(heart.Reputation))
+                var reputation = heart.ReputationFor(player);
+                if (VillageHeart.RefusesRecruits(reputation))
                 {
                     player.Message(MessageHud.MessageType.Center,
                         Localization.instance.Localize("$vs_rep_refuse"));
                     return true;
                 }
-                cost = ScaledRecruitCost(heart.Reputation);
+                cost = ScaledRecruitCost(reputation);
             }
 
             var coinsName = CoinsSharedName();
@@ -541,7 +542,7 @@ namespace VikingSettlements.Npcs
             }
 
             // The village notices its people leaving.
-            heart?.AddReputation(-2);
+            heart?.AddReputation(player, -2);
 
             _nview.GetZDO().Set(OwnerKey, player.GetPlayerID());
             State = SettlerState.Following;
@@ -585,10 +586,10 @@ namespace VikingSettlements.Npcs
                 }
                 player.GetInventory().RemoveItem(coinsName, cost);
             }
-            heart.AddReputation(ModConfig.DonationReputation.Value);
+            heart.AddReputation(player, ModConfig.DonationReputation.Value);
             player.Message(MessageHud.MessageType.Center,
                 Localization.instance.Localize(
-                    $"$vs_donated ($vs_rep: {VillageHeart.TierToken(heart.Reputation)})"));
+                    $"$vs_donated ($vs_rep: {VillageHeart.TierToken(heart.ReputationFor(player))})"));
             return true;
         }
 

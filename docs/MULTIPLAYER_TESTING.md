@@ -19,6 +19,13 @@ mutations.
 The **Object** dropdown can spawn Settlers, Seers or one Camp-tier
 Hearthstone. A test Hearthstone is automatically founded by the host; NPC-only
 dropdowns are ignored and the preview says so before spawning.
+
+Two permanent quick-spawn buttons sit below the dropdowns:
+
+- **Spawn Hearthstone** creates one host-owned Camp Hearthstone in front of you.
+- **Spawn Start Village** creates a 16-resident neutral Meadows village 75m
+  from the first spawn. Stand within 300m of the start; an existing nearby
+  village heart prevents accidental duplicates.
 5. Run `hnh_test disable` when testing is finished.
 
 The hotkey can be changed with `Development.TestPanelHotkey`. Public and

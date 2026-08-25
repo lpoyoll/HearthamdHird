@@ -193,7 +193,7 @@ namespace VikingSettlements.Raids
             var heart = VillageHeart.FindNearest(transform.position);
             if (heart != null && ModConfig.ReputationEnabled.Value)
             {
-                heart.AddReputation(reputation);
+                heart.AddReputation(player, reputation);
             }
             player.Message(MessageHud.MessageType.Center,
                 Localization.instance.Localize($"$vs_bounty_done (+{coins} $item_coins)"));

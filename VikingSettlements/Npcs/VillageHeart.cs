@@ -1,20 +1,24 @@
+using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace VikingSettlements.Npcs
 {
     /// <summary>
     /// The invisible, persistent center of a wild settlement, placed by the
-    /// village layouts. It stores the village's standing toward players
-    /// (-100..+100, shared by all players): earned by defending villagers and
-    /// donating coins, lost by attacking them. Standing scales recruit costs;
-    /// a hated village refuses to deal with you at all.
+    /// village layouts. It stores this specific village's standing toward
+    /// each player (-100..+100): earned by defending villagers and donating
+    /// coins, lost by attacking them. Standing scales recruit costs; a hated
+    /// village refuses to deal with that player and will defend itself.
     /// Villages generated before this feature have no heart and simply behave
     /// neutrally - `spawn VS_VillageHeart` can retrofit one.
     /// </summary>
     public class VillageHeart : MonoBehaviour
     {
         public const string RepKey = "vs_rep";
+        private const string HostileUntilKey = "hnh_hostile_until";
+        private const float RetaliationSeconds = 120f;
         public const int MinRep = -100;
         public const int MaxRep = 100;
 
@@ -56,19 +60,113 @@ namespace VikingSettlements.Npcs
             return best;
         }
 
-        public int Reputation => _nview != null && _nview.IsValid()
-            ? _nview.GetZDO().GetInt(RepKey)
-            : 0;
+        public int Reputation => ReputationFor(Player.m_localPlayer);
 
-        public void AddReputation(int delta)
+        public int ReputationFor(Player player)
         {
-            if (_nview == null || !_nview.IsValid() || delta == 0)
+            return player != null ? ReputationFor(player.GetPlayerID()) : 0;
+        }
+
+        public int ReputationFor(long playerId)
+        {
+            if (_nview == null || !_nview.IsValid() || playerId == 0L)
+            {
+                return 0;
+            }
+            // Existing saves stored one village-wide value. Use it as the
+            // starting value until this player earns an individual record.
+            return _nview.GetZDO().GetInt(ReputationKey(playerId),
+                _nview.GetZDO().GetInt(RepKey));
+        }
+
+        public void AddReputation(Player player, int delta)
+        {
+            if (player != null)
+            {
+                AddReputation(player.GetPlayerID(), delta);
+            }
+        }
+
+        public void AddReputation(long playerId, int delta)
+        {
+            if (_nview == null || !_nview.IsValid() || playerId == 0L || delta == 0)
             {
                 return;
             }
             _nview.ClaimOwnership();
-            var rep = Mathf.Clamp(_nview.GetZDO().GetInt(RepKey) + delta, MinRep, MaxRep);
-            _nview.GetZDO().Set(RepKey, rep);
+            var rep = Mathf.Clamp(ReputationFor(playerId) + delta, MinRep, MaxRep);
+            _nview.GetZDO().Set(ReputationKey(playerId), rep);
+        }
+
+        public void MarkHostile(Player player)
+        {
+            if (player == null || _nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            var until = DateTime.UtcNow.AddSeconds(RetaliationSeconds).Ticks;
+            _nview.GetZDO().Set(HostilityKey(player.GetPlayerID()), until);
+        }
+
+        public bool IsHostileTo(Player player)
+        {
+            if (player == null || _nview == null || !_nview.IsValid())
+            {
+                return false;
+            }
+            return ReputationFor(player) <= -50
+                || _nview.GetZDO().GetLong(HostilityKey(player.GetPlayerID())) > DateTime.UtcNow.Ticks;
+        }
+
+        internal Player FindHostilePlayer(Vector3 origin, float range)
+        {
+            Player nearest = null;
+            var nearestDistance = range;
+            foreach (var player in Player.GetAllPlayers())
+            {
+                if (player == null || player.IsDead() || !IsHostileTo(player))
+                {
+                    continue;
+                }
+                var distance = Vector3.Distance(origin, player.transform.position);
+                if (distance < nearestDistance)
+                {
+                    nearest = player;
+                    nearestDistance = distance;
+                }
+            }
+            return nearest;
+        }
+
+        internal Player FindFriendlyWitness(Vector3 origin, float range)
+        {
+            Player nearest = null;
+            var nearestDistance = range;
+            foreach (var player in Player.GetAllPlayers())
+            {
+                if (player == null || player.IsDead() || IsHostileTo(player))
+                {
+                    continue;
+                }
+                var distance = Vector3.Distance(origin, player.transform.position);
+                if (distance < nearestDistance)
+                {
+                    nearest = player;
+                    nearestDistance = distance;
+                }
+            }
+            return nearest;
+        }
+
+        private static string ReputationKey(long playerId)
+        {
+            return RepKey + "_" + playerId.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string HostilityKey(long playerId)
+        {
+            return HostileUntilKey + "_" + playerId.ToString(CultureInfo.InvariantCulture);
         }
 
         // ---- Standing tiers ----

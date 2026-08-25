@@ -120,5 +120,5 @@
 <text x="539" y="663" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#ded5c4">+1&#160;&#160;defending — be within 40 m when monsters attack</text>
 <text x="539" y="686" font-family="Segoe UI,Arial,sans-serif" font-size="13" fill="#8fa0a8">100 coins of gifts → Honored → pays off in 4 hires</text>
 
-<text x="500" y="750" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#8fa0a8" text-anchor="middle">Veterans cost the same as anyone — old villages hold Elite villagers at base price · standing is shared by all players · vs_find village finds the nearest</text>
+<text x="500" y="750" font-family="Segoe UI,Arial,sans-serif" font-size="12" fill="#8fa0a8" text-anchor="middle">Veterans cost the same as anyone · standing is per player and per village · vs_find village finds the nearest</text>
 </svg>

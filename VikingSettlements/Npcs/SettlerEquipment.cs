@@ -21,6 +21,7 @@ namespace VikingSettlements.Npcs
         private ZNetView _nview;
         private Humanoid _humanoid;
         private Character _character;
+        private SettlerRecruitable _settler;
         private float _nextTick;
         private readonly ItemDrop.ItemData[] _applied = new ItemDrop.ItemData[SlotCount];
         private readonly string[] _appliedSpec = new string[SlotCount];
@@ -30,6 +31,7 @@ namespace VikingSettlements.Npcs
             _nview = GetComponent<ZNetView>();
             _humanoid = GetComponent<Humanoid>();
             _character = GetComponent<Character>();
+            _settler = GetComponent<SettlerRecruitable>();
             if (_character != null)
             {
                 _character.m_onDeath += OnDeath;
@@ -206,6 +208,8 @@ namespace VikingSettlements.Npcs
             }
             _nextTick = Time.time + TickInterval;
 
+            EnsureWildWeapon();
+
             for (var slot = 0; slot < SlotCount; slot++)
             {
                 var spec = _nview.GetZDO().GetString(SlotKeys[slot]);
@@ -215,6 +219,31 @@ namespace VikingSettlements.Npcs
                     RecalcArmor();
                 }
             }
+        }
+
+        // Ordinary world villagers need a valid Player-rig weapon to defend
+        // themselves. The cloned Dvergr crossbow was intentionally removed;
+        // a simple club has compatible attachments and melee animations.
+        private void EnsureWildWeapon()
+        {
+            if (_settler == null || _settler.State != SettlerState.Wild
+                || _settler.IsTestSpawned || !string.IsNullOrEmpty(SlotSpec(0))
+                || ObjectDB.instance == null)
+            {
+                return;
+            }
+            var prefab = ObjectDB.instance.GetItemPrefab("Club");
+            var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
+            if (drop == null)
+            {
+                return;
+            }
+            var item = drop.m_itemData.Clone();
+            item.m_dropPrefab = prefab;
+            item.m_stack = 1;
+            item.m_quality = 1;
+            item.m_durability = item.GetMaxDurability();
+            _nview.GetZDO().Set(SlotKeys[0], Spec(item));
         }
 
         /// <summary>
