@@ -14,7 +14,9 @@ namespace VikingSettlements.Npcs
     /// </summary>
     public class SettlerReputation : MonoBehaviour
     {
+        private const int AccidentalPunchPenalty = -2;
         private const int PlayerHitPenalty = -5;
+        private const int ArmedHitPenalty = -10;
         private const int PlayerKillPenalty = -25;
         private const int DefenseReward = 1;
         private const float PlayerHitCooldown = 5f;
@@ -24,7 +26,12 @@ namespace VikingSettlements.Npcs
         private const float VillageDefenseRange = 58f;
         private const float DefenseScanInterval = 0.5f;
         private const string PersonalHostileUntilKey = "hnh_settler_hostile_until";
-        private const float PersonalRetaliationSeconds = 120f;
+        private const string PersonalLethalKey = "hnh_settler_hostile_lethal";
+        private const string HirdThreatUntilKey = "hnh_settler_hird_threat";
+        private const float PersonalBrawlSeconds = 8f;
+        private const float VillageBrawlSeconds = 25f;
+        private const float LethalRetaliationSeconds = 120f;
+        private const float UnprovokedThreatSeconds = 25f;
 
         private ZNetView _nview;
         private Character _character;
@@ -35,6 +42,8 @@ namespace VikingSettlements.Npcs
         private float _lastPlayerHitTime = -1000f;
         private long _lastPlayerAttacker;
         private float _nextDefenseScan;
+        private long _incomingPlayerId;
+        private bool _incomingPlayerUnarmed;
 
         private void Awake()
         {
@@ -97,13 +106,29 @@ namespace VikingSettlements.Npcs
                 }
                 _lastPlayerHitTime = Time.time;
                 _lastPlayerAttacker = player.GetPlayerID();
-                var heart = VillageHeart.FindNearest(transform.position);
-                MarkPersonalHostile(player);
-                heart?.MarkHostile(player);
+                var heart = VillageHeart.ForSettler(_settler);
+                var unarmed = _incomingPlayerId == player.GetPlayerID()
+                    ? _incomingPlayerUnarmed
+                    : IsPlayerUnarmed(player);
+                _incomingPlayerId = 0L;
+                var response = heart != null
+                    ? heart.RegisterAssault(player, unarmed)
+                    : (unarmed ? VillageAssaultResponse.PersonalBrawl
+                        : VillageAssaultResponse.LethalDefense);
+                var lethal = response == VillageAssaultResponse.LethalDefense;
+                var seconds = lethal ? LethalRetaliationSeconds
+                    : response == VillageAssaultResponse.VillageBrawl
+                        ? VillageBrawlSeconds
+                        : PersonalBrawlSeconds;
+                MarkPersonalHostile(player, seconds, lethal);
                 if (ModConfig.ReputationEnabled.Value && _playerHitCooldown <= 0f)
                 {
                     _playerHitCooldown = PlayerHitCooldown;
-                    heart?.AddReputation(player, PlayerHitPenalty);
+                    var penalty = !unarmed ? ArmedHitPenalty
+                        : response == VillageAssaultResponse.PersonalBrawl
+                            ? AccidentalPunchPenalty
+                            : PlayerHitPenalty;
+                    heart?.AddReputation(player, penalty);
                 }
                 Engage(player);
                 return;
@@ -114,7 +139,7 @@ namespace VikingSettlements.Npcs
                 && Player.IsPlayerInRange(transform.position, DefenderRange))
             {
                 _defenseCooldown = DefenseCooldown;
-                var heart = VillageHeart.FindNearest(transform.position);
+                var heart = VillageHeart.ForSettler(_settler);
                 var witness = heart?.FindFriendlyWitness(transform.position, DefenderRange);
                 if (witness != null)
                 {
@@ -131,7 +156,7 @@ namespace VikingSettlements.Npcs
             }
             if (Time.time - _lastPlayerHitTime <= KillAttributionWindow)
             {
-                VillageHeart.FindNearest(transform.position)
+                VillageHeart.ForSettler(_settler)
                     ?.AddReputation(_lastPlayerAttacker, PlayerKillPenalty);
             }
         }
@@ -140,7 +165,55 @@ namespace VikingSettlements.Npcs
         {
             return player != null && _settler != null && _settler.State == SettlerState.Wild
                 && (IsPersonalHostileTo(player)
-                    || VillageHeart.FindNearest(transform.position)?.IsHostileTo(player) == true);
+                    || VillageHeart.ForSettler(_settler)?.IsHostileTo(player) == true);
+        }
+
+        internal bool ShouldHirdDefend(Player player)
+        {
+            if (player == null || _settler == null || _settler.State != SettlerState.Wild)
+            {
+                return false;
+            }
+            if (_nview != null && _nview.IsValid()
+                && _nview.GetZDO().GetLong(HirdThreatKey(player.GetPlayerID()))
+                    > DateTime.UtcNow.Ticks)
+            {
+                return true;
+            }
+            if (IsPersonalHostileTo(player) && IsPersonalLethalTo(player))
+            {
+                return true;
+            }
+            return VillageHeart.ForSettler(_settler)?.IsLethallyHostileTo(player) == true;
+        }
+
+        internal bool IsMinorBrawlWith(Player player)
+        {
+            var heart = VillageHeart.ForSettler(_settler);
+            if (heart?.IsLethallyHostileTo(player) == true)
+            {
+                return false;
+            }
+            return (IsPersonalHostileTo(player) && !IsPersonalLethalTo(player))
+                || heart?.IsHostileTo(player) == true;
+        }
+
+        internal void ClearTemporaryHostility(Player player)
+        {
+            if (player == null || _nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            var playerId = player.GetPlayerID();
+            _nview.GetZDO().Set(PersonalHostilityKey(playerId), 0L);
+            _nview.GetZDO().Set(PersonalLethalKeyFor(playerId), false);
+            _nview.GetZDO().Set(HirdThreatKey(playerId), 0L);
+            if (_ai != null && _ai.m_targetCreature == player)
+            {
+                _ai.m_targetCreature = null;
+                _ai.SetAlerted(false);
+            }
         }
 
         private void UpdateVillageDefense()
@@ -152,6 +225,13 @@ namespace VikingSettlements.Npcs
             var hostile = FindHostilePlayer();
             if (hostile != null)
             {
+                var resident = GetComponent<VillageResident>();
+                var personal = IsPersonalHostileTo(hostile);
+                if (!personal && resident != null && !resident.IsDefender)
+                {
+                    GetComponent<SettlerHome>()?.ReturnFromThreat();
+                    return;
+                }
                 Engage(hostile);
                 return;
             }
@@ -193,7 +273,7 @@ namespace VikingSettlements.Npcs
             return nearest;
         }
 
-        private void MarkPersonalHostile(Player player)
+        private void MarkPersonalHostile(Player player, float seconds, bool lethal)
         {
             if (player == null || _nview == null || !_nview.IsValid())
             {
@@ -201,7 +281,8 @@ namespace VikingSettlements.Npcs
             }
             _nview.ClaimOwnership();
             _nview.GetZDO().Set(PersonalHostilityKey(player.GetPlayerID()),
-                DateTime.UtcNow.AddSeconds(PersonalRetaliationSeconds).Ticks);
+                DateTime.UtcNow.AddSeconds(seconds).Ticks);
+            _nview.GetZDO().Set(PersonalLethalKeyFor(player.GetPlayerID()), lethal);
         }
 
         private bool IsPersonalHostileTo(Player player)
@@ -211,9 +292,98 @@ namespace VikingSettlements.Npcs
                     > DateTime.UtcNow.Ticks;
         }
 
+        private bool IsPersonalLethalTo(Player player)
+        {
+            return player != null && _nview != null && _nview.IsValid()
+                && _nview.GetZDO().GetBool(PersonalLethalKeyFor(player.GetPlayerID()));
+        }
+
+        private void RecordPlayerHit(Player player, bool unarmed)
+        {
+            _incomingPlayerId = player != null ? player.GetPlayerID() : 0L;
+            _incomingPlayerUnarmed = unarmed;
+        }
+
+        private void RecordUnprovokedThreat(Player player)
+        {
+            if (player == null || _nview == null || !_nview.IsValid()
+                || IsMinorBrawlWith(player))
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            _nview.GetZDO().Set(HirdThreatKey(player.GetPlayerID()),
+                DateTime.UtcNow.AddSeconds(UnprovokedThreatSeconds).Ticks);
+        }
+
+        internal static void RecordDamageContext(Character target, HitData hit)
+        {
+            if (target == null || hit == null)
+            {
+                return;
+            }
+            var attacker = hit.GetAttacker();
+            var victimReputation = target.GetComponent<SettlerReputation>();
+            if (attacker is Player player && victimReputation != null)
+            {
+                victimReputation.RecordPlayerHit(player, IsPlayerUnarmed(player));
+            }
+
+            var attackerReputation = attacker != null
+                ? attacker.GetComponent<SettlerReputation>()
+                : null;
+            if (attackerReputation == null)
+            {
+                return;
+            }
+            var threatenedPlayer = target as Player;
+            if (threatenedPlayer == null)
+            {
+                var targetSettler = target.GetComponent<SettlerRecruitable>();
+                if (targetSettler != null && targetSettler.State == SettlerState.Following)
+                {
+                    threatenedPlayer = FindPlayer(targetSettler.RecruiterId);
+                }
+            }
+            if (threatenedPlayer != null)
+            {
+                attackerReputation.RecordUnprovokedThreat(threatenedPlayer);
+            }
+        }
+
+        private static bool IsPlayerUnarmed(Player player)
+        {
+            var weapon = player != null ? player.GetCurrentWeapon() : null;
+            return weapon == null || weapon.m_shared.m_skillType == Skills.SkillType.Unarmed;
+        }
+
+        private static Player FindPlayer(long playerId)
+        {
+            foreach (var player in Player.GetAllPlayers())
+            {
+                if (player != null && player.GetPlayerID() == playerId)
+                {
+                    return player;
+                }
+            }
+            return null;
+        }
+
         private static string PersonalHostilityKey(long playerId)
         {
             return PersonalHostileUntilKey + "_"
+                + playerId.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string PersonalLethalKeyFor(long playerId)
+        {
+            return PersonalLethalKey + "_"
+                + playerId.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static string HirdThreatKey(long playerId)
+        {
+            return HirdThreatUntilKey + "_"
                 + playerId.ToString(CultureInfo.InvariantCulture);
         }
     }

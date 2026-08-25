@@ -352,7 +352,7 @@ namespace VikingSettlements.Npcs
             {
                 case SettlerState.Wild:
                     role = "$vs_talk_wild";
-                    var heart = VillageHeart.FindNearest(_settler.transform.position);
+                    var heart = VillageHeart.ForSettler(_settler);
                     if (heart != null && ModConfig.ReputationEnabled.Value)
                     {
                         var reputation = heart.ReputationFor(Player.m_localPlayer);

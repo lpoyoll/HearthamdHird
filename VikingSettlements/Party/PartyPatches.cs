@@ -84,6 +84,7 @@ namespace VikingSettlements.Party
     {
         private static bool Prefix(Character __instance, HitData hit)
         {
+            SettlerReputation.RecordDamageContext(__instance, hit);
             return PartyDamageContract.AllowDamage(__instance, hit);
         }
     }

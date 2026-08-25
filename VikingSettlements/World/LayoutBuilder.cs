@@ -2,6 +2,8 @@ using System.Collections.Generic;
 using Jotunn.Entities;
 using Jotunn.Managers;
 using UnityEngine;
+using HearthAndHird.Network;
+using VikingSettlements.Development;
 
 namespace VikingSettlements.World
 {
@@ -58,6 +60,55 @@ namespace VikingSettlements.World
                 Object.Instantiate(prefab,
                     origin + rotation * part.Position,
                     rotation * Quaternion.Euler(0f, part.RotationY, 0f));
+                count++;
+            }
+            WarnMissing(layout, missing);
+            return count;
+        }
+
+        /// <summary>
+        /// Development village pass. Terrain levelling is spawned alone on
+        /// the first pass; after it settles, every building module is grounded
+        /// from its own foundation anchor instead of inheriting one arbitrary
+        /// centre height. Every object is tagged for safe F7 cleanup.
+        /// </summary>
+        internal static int BuildTestAt(Vector3 origin, Quaternion rotation,
+            SettlementLayout layout, string batch, bool terrainPass)
+        {
+            var count = 0;
+            var missing = new HashSet<string>();
+            foreach (var part in layout.Parts)
+            {
+                var isTerrain = part.Prefab.StartsWith("VS_Flatten");
+                if (terrainPass != isTerrain)
+                {
+                    continue;
+                }
+                var prefab = Resolve(part.Prefab);
+                if (prefab == null)
+                {
+                    missing.Add(part.Prefab);
+                    continue;
+                }
+
+                var position = origin + rotation * part.Position;
+                if (ZoneSystem.instance != null)
+                {
+                    var foundation = origin + rotation * part.Foundation;
+                    var ground = ZoneSystem.instance.GetGroundHeight(foundation);
+                    position.y = ground + part.Position.y - part.Foundation.y;
+                }
+                var instance = Object.Instantiate(prefab, position,
+                    rotation * Quaternion.Euler(0f, part.RotationY, 0f));
+                var marker = instance.GetComponent<TestVillagePart>()
+                    ?? instance.AddComponent<TestVillagePart>();
+                marker.Configure(batch);
+                var view = instance.GetComponent<ZNetView>();
+                if (view != null && view.IsValid())
+                {
+                    view.ClaimOwnership();
+                    view.GetZDO().Set(HearthZdoKeys.VillageTestBatch, batch);
+                }
                 count++;
             }
             WarnMissing(layout, missing);

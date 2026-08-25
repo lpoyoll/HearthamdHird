@@ -1,4 +1,5 @@
 using VikingSettlements.Npcs;
+using UnityEngine;
 
 namespace VikingSettlements.World
 {
@@ -14,13 +15,12 @@ namespace VikingSettlements.World
         {
             var l = new SettlementLayout("cabin");
 
-            // Floor and flat sod roof, four 2x2m tiles each.
+            // Four floor tiles.
             foreach (var x in new[] { -1f, 1f })
             {
                 foreach (var z in new[] { -1f, 1f })
                 {
                     l.Add("wood_floor", x, 0f, z);
-                    l.Add("wood_floor", x, 2f, z);
                 }
             }
 
@@ -35,6 +35,21 @@ namespace VikingSettlements.World
             // Front wall with door opening.
             l.Add("wood_wall_full", -1f, 0f, 2f);
             l.Add("wood_door", 1f, 0f, 2f);
+
+            // A real weatherproof roof rather than the old floating floor.
+            foreach (var z in new[] { -1f, 1f })
+            {
+                l.Add("wood_roof_45", -2f, 2f, z, 90f);
+                l.Add("wood_roof_45", 2f, 2f, z, 270f);
+                l.Add("wood_roof_top_45", 0f, 4f, z, 90f);
+            }
+            foreach (var zEnd in new[] { -2f, 2f })
+            {
+                var facing = zEnd < 0f ? 0f : 180f;
+                l.Add("wood_wall_roof_45", -1f, 2f, zEnd, facing);
+                l.Add("wood_wall_roof_45", 1f, 2f, zEnd, facing);
+                l.Add("wood_wall_roof_top_45", 0f, 4f, zEnd, facing);
+            }
 
             l.Add("bed", -1f, 0f, -1f);
             if (chest != null)
@@ -133,6 +148,7 @@ namespace VikingSettlements.World
             l.Add("wood_fence", 1f, 6f, 0f, 90f);
             l.Add("wood_fence", -1f, 6f, 0f, 90f);
             l.Add("piece_groundtorch_wood", 0f, 6f, 0f);
+            l.Add("wood_ladder", 0f, 0f, 1.15f, 180f);
             return l;
         }
 
@@ -211,7 +227,7 @@ namespace VikingSettlements.World
                 var rad = angle * UnityEngine.Mathf.Deg2Rad;
                 var x = radius * UnityEngine.Mathf.Sin(rad);
                 var z = radius * UnityEngine.Mathf.Cos(rad);
-                l.Add("sharp_stakes", x, 0f, z, angle + 90f);
+                l.AddGrounded("sharp_stakes", x, 0f, z, angle + 90f);
             }
         }
 
@@ -393,6 +409,112 @@ namespace VikingSettlements.World
                 village.Add(SettlerPrefabs.Settler, settler.x, 0f, settler.z, settler.rot);
             }
             return village;
+        }
+
+        /// <summary>
+        /// Curated development settlements used by F7. Buildings grow in
+        /// irregular rings around a communal centre, face their paths and are
+        /// grounded as complete modules by LayoutBuilder.
+        /// </summary>
+        public static SettlementLayout DevelopmentSettlement(WildSettlementTier tier)
+        {
+            var l = new SettlementLayout("HearthAndHird_" + VillageHeart.TierDisplay(tier));
+            l.AddGrounded(SettlerPrefabs.Heart, 0f, 0f, 0f);
+            l.Add(tier <= WildSettlementTier.Homestead
+                ? SettlerPrefabs.FlattenOutpost
+                : SettlerPrefabs.FlattenVillage, 0f, 0f, 0f);
+            l.Place(FirePlaza(), 0f, 0f);
+            l.AddGrounded("piece_maypole", 3.8f, 0f, -2.8f);
+
+            var houseAnchors = new[]
+            {
+                (x: -7f, z: -8f), (x: 8f, z: -7f),
+                (x: -11f, z: 2f), (x: 11f, z: 4f),
+                (x: -9f, z: 14f), (x: 9f, z: 15f),
+                (x: -18f, z: -8f), (x: 18f, z: -6f),
+                (x: -19f, z: 7f), (x: 20f, z: 9f),
+                (x: -16f, z: 22f), (x: 16f, z: 23f),
+                (x: -27f, z: -3f), (x: 28f, z: -1f),
+                (x: -25f, z: 16f), (x: 26f, z: 18f),
+            };
+            var houseCounts = new[] { 2, 3, 4, 6, 8, 12, 16 };
+            var houseCount = houseCounts[(int)tier];
+            for (var i = 0; i < houseCount; i++)
+            {
+                var anchor = houseAnchors[i];
+                l.Place(Cabin(), anchor.x, anchor.z, FacingCentre(anchor.x, anchor.z));
+                AddPath(l, anchor.x, anchor.z);
+            }
+
+            if (tier >= WildSettlementTier.Homestead)
+            {
+                var hallZ = tier >= WildSettlementTier.Hold ? 30f : 23f;
+                var hall = tier >= WildSettlementTier.Hold
+                    ? Hall("stone_wall_2x1", true, "piece_chest_wood")
+                    : Hall("wood_wall_full", false, "piece_chest_wood");
+                l.Place(hall, 0f, hallZ, 180f);
+                AddPath(l, 0f, hallZ - 5f);
+            }
+            if (tier >= WildSettlementTier.Hamlet)
+            {
+                l.Place(Farm("Pickable_Carrot", "Pickable_Turnip"), -17f, 18f, 35f);
+                l.AddGrounded("piece_workbench", 15f, 0f, 15f, 225f);
+                l.AddGrounded("wood_stack", 17f, 0f, 13f);
+            }
+            if (tier >= WildSettlementTier.Village)
+            {
+                l.Place(BlueprintMeadHall(), 13f, 26f, 205f);
+                l.Place(TraderStall(), -15f, 28f, 155f);
+                l.Place(Watchtower(), -23f, -13f, 35f);
+                l.Place(Watchtower(), 23f, -12f, 325f);
+                AddStakeRing(l, VillageHeart.FootprintForTier(tier),
+                    22 + (int)tier * 5, 34f);
+            }
+            if (tier >= WildSettlementTier.Hold)
+            {
+                l.AddGrounded("forge", 22f, 0f, 18f, 240f);
+                l.AddGrounded("smelter", 25f, 0f, 15f, 250f);
+                l.AddGrounded("charcoal_kiln", 26f, 0f, 21f, 230f);
+                l.Place(Farm("Pickable_Carrot", "Pickable_Turnip"), -27f, 23f, 45f);
+                l.Place(Watchtower(), 0f, -VillageHeart.FootprintForTier(tier) + 3f);
+            }
+            if (tier >= WildSettlementTier.GreatHold)
+            {
+                l.Place(BlueprintMeadHall(), -17f, 34f, 160f);
+                l.Place(Watchtower(), -VillageHeart.FootprintForTier(tier) + 3f, 8f, 90f);
+                l.Place(Watchtower(), VillageHeart.FootprintForTier(tier) - 3f, 8f, 270f);
+            }
+
+            var population = VillageHeart.PopulationForTier(tier);
+            var hasSeer = tier >= WildSettlementTier.Hamlet;
+            for (var i = 0; i < population; i++)
+            {
+                var ring = i / 12;
+                var slot = i % 12;
+                var angle = slot * 30f + ring * 11f;
+                var radius = 4.5f + ring * 4.8f;
+                var radians = angle * Mathf.Deg2Rad;
+                var x = Mathf.Sin(radians) * radius;
+                var z = Mathf.Cos(radians) * radius;
+                var prefab = hasSeer && i == population - 1
+                    ? SettlerPrefabs.Seer
+                    : SettlerPrefabs.Settler;
+                l.AddGrounded(prefab, x, 0f, z, angle + 180f);
+            }
+            return l;
+        }
+
+        private static float FacingCentre(float x, float z)
+        {
+            return Mathf.Atan2(-x, -z) * Mathf.Rad2Deg;
+        }
+
+        private static void AddPath(SettlementLayout layout, float x, float z)
+        {
+            foreach (var fraction in new[] { 0.35f, 0.65f, 0.9f })
+            {
+                layout.AddGrounded("path_v2", x * fraction, 0f, z * fraction);
+            }
         }
 
         /// <summary>A small fortified black forest outpost with three settlers.</summary>

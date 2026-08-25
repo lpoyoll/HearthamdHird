@@ -1,5 +1,31 @@
 # Changelog
 
+### 1.13.5
+
+- Replaced blanket settler exclusion in Hird targeting with relationship-aware
+  defence. The Hird can now fight lethally hostile wild residents while still
+  protecting neutral villagers and refusing to turn an accidental brawl into
+  a massacre.
+- Replaced two-minute binary retaliation with graduated assault handling: one
+  unarmed hit creates an eight-second personal scuffle, repeated punches call
+  village defenders for a short brawl, and armed attacks trigger lethal
+  settlement defence. F7 can reset the selected village's temporary timers.
+- Bound every wild resident to one exact VillageHeart ZDO, persistent home and
+  role. Residents now obey soft and hard home leashes and visibly run home
+  rather than routinely teleporting when they stray outside the settlement.
+- Added Headman/Headwoman, Elder, Jarl, Hersir, Guard, Housecarl and Seer roles.
+  Settlement size now drives leader rank, defender count, persistent level mix
+  and biome-appropriate equipment; civilians retreat while defenders respond.
+- Rebuilt F7 settlement spawning around **Settlement** and **Placement**
+  dropdowns. Hosts can create a Camp, Homestead, Hamlet, Village, Hold, Great
+  Hold or Jarl's Seat either near themselves or near the first spawn.
+- Replaced the fixed 75m test-village stamp with site surveying, dry/level
+  foundation validation, a terrain-preparation pass and per-building grounding.
+  Cabins now have complete pitched roofs, structures face organic paths, and
+  larger tiers gain halls, farms, workshops, palisades and watchtowers.
+- F7 test villages are batch-tagged for one-click loaded-object cleanup, and
+  the selected-unit readout now shows village, role and distance from home.
+
 ### 1.13.4
 
 - Added permanent, clearly labelled **Spawn Hearthstone** and **Spawn Start

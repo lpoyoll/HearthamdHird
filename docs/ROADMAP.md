@@ -71,8 +71,9 @@ last known positions on the map.
 The current build now contains the first narrow foundation for 1.3.0: every
 wild settlement heart stores a separate relationship for each player, and a
 village attacked by that player defends itself without making every other
-settlement hostile. Alliances, trade, wars and inter-settlement politics remain
-design-only.
+settlement hostile. Generated settlements now also have exact membership,
+home-bound residents, leaders, defenders, Seers and tier-weighted veterancy.
+Alliances, trade, wars and inter-settlement politics remain design-only.
 
 Relationships and children deliberately sit after the 1.0.0 stability gate.
 They should create memorable households and emergent stories without turning

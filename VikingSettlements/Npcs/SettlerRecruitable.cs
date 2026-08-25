@@ -52,6 +52,7 @@ namespace VikingSettlements.Npcs
         private MonsterAI _ai;
         private Party.PartyMember _member;
         private SettlerDirectiveState _directives;
+        private SettlerHome _home;
         private float _baseAlertRange = -1f;
         private float _nextRegisterSync;
 
@@ -62,6 +63,7 @@ namespace VikingSettlements.Npcs
             _ai = GetComponent<MonsterAI>();
             _member = GetComponent<Party.PartyMember>();
             _directives = GetComponent<SettlerDirectiveState>();
+            _home = GetComponent<SettlerHome>();
             if (_character != null)
             {
                 _character.m_onDeath += OnDeath;
@@ -319,7 +321,9 @@ namespace VikingSettlements.Npcs
                     }
                 }
             }
-            else if (state != SettlerState.Following && _ai.GetFollowTarget() != null)
+            else if (state != SettlerState.Following && _ai.GetFollowTarget() != null
+                     && !(state == SettlerState.Wild
+                          && _home?.IsReturning == true))
             {
                 _ai.SetFollowTarget(null);
             }
@@ -390,10 +394,14 @@ namespace VikingSettlements.Npcs
             {
                 return "";
             }
-            return Localization.instance.Localize(
+            var name = Localization.instance.Localize(
                 _character.m_name
                 + SettlerVeterancy.EpithetToken(_nview, _character)
                 + SettlerVeterancy.RankToken(_character));
+            var resident = GetComponent<VillageResident>();
+            return State == SettlerState.Wild && resident != null
+                ? name + " — " + resident.Title
+                : name;
         }
 
         public string GetHoverText()
@@ -408,7 +416,7 @@ namespace VikingSettlements.Npcs
             switch (State)
             {
                 case SettlerState.Wild:
-                    var heart = VillageHeart.FindNearest(transform.position);
+                    var heart = VillageHeart.ForSettler(this);
                     if (heart == null || !ModConfig.ReputationEnabled.Value)
                     {
                         text = $"{name}\n[<color=yellow><b>$KEY_Use</b></color>] $vs_recruit ({ModConfig.RecruitCostCoins.Value} $item_coins)";
@@ -515,7 +523,7 @@ namespace VikingSettlements.Npcs
             }
 
             var heart = ModConfig.ReputationEnabled.Value
-                ? VillageHeart.FindNearest(transform.position)
+                ? VillageHeart.ForSettler(this)
                 : null;
             var cost = ModConfig.RecruitCostCoins.Value;
             if (heart != null)
@@ -569,7 +577,7 @@ namespace VikingSettlements.Npcs
             {
                 return false;
             }
-            var heart = VillageHeart.FindNearest(transform.position);
+            var heart = VillageHeart.ForSettler(this);
             if (heart == null)
             {
                 return false;

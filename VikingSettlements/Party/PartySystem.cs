@@ -309,14 +309,13 @@ namespace VikingSettlements.Party
                 {
                     continue;
                 }
-                // Only genuine enemies: no players, no tamed animals, and
-                // never a settler of any allegiance.
-                if (character.IsPlayer() || character.IsTamed()
-                    || character.GetComponent<SettlerRecruitable>() != null)
+                // Neutral/friendly residents stay protected, but a village
+                // that has escalated to lethal hostility is a real enemy.
+                if (character.IsPlayer() || character.IsTamed())
                 {
                     continue;
                 }
-                if (!BaseAI.IsEnemy(player, character))
+                if (!CanTarget(player, character))
                 {
                     continue;
                 }
@@ -337,8 +336,7 @@ namespace VikingSettlements.Party
             {
                 if (character == null || character == owner || character.IsDead()
                     || character.IsPlayer() || character.IsTamed()
-                    || character.GetComponent<SettlerRecruitable>() != null
-                    || !BaseAI.IsEnemy(owner, character))
+                    || !CanTarget(owner, character))
                 {
                     continue;
                 }
@@ -350,6 +348,25 @@ namespace VikingSettlements.Party
                 }
             }
             return nearest;
+        }
+
+        internal static bool CanTarget(Player owner, Character character)
+        {
+            if (owner == null || character == null || character.IsDead())
+            {
+                return false;
+            }
+            var settler = character.GetComponent<SettlerRecruitable>();
+            if (settler == null)
+            {
+                return BaseAI.IsEnemy(owner, character);
+            }
+            if (settler.State != SettlerState.Wild)
+            {
+                return false;
+            }
+            var reputation = character.GetComponent<SettlerReputation>();
+            return reputation != null && reputation.ShouldHirdDefend(owner);
         }
 
         private static bool TryFindOrderPoint(Player player, out Vector3 point)

@@ -160,6 +160,15 @@ namespace VikingSettlements.Npcs
             {
                 return false;
             }
+            return SetGeneratedItem(prefabName, quality);
+        }
+
+        private bool SetGeneratedItem(string prefabName, int quality = 1)
+        {
+            if (_nview == null || !_nview.IsValid())
+            {
+                return false;
+            }
             var prefab = ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(prefabName) : null;
             var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
             if (drop == null)
@@ -180,6 +189,69 @@ namespace VikingSettlements.Npcs
             _nview.GetZDO().Set(SlotKeys[slot], Spec(item));
             _nextTick = 0f;
             return true;
+        }
+
+        /// <summary>
+        /// Gives generated wild settlements biome-appropriate, persistent
+        /// equipment. It runs only for the network owner and never replaces
+        /// an item already recorded in that slot.
+        /// </summary>
+        internal void ApplyVillageKit(WildSettlementTier tier, VillageResidentRole role)
+        {
+            if (_nview == null || !_nview.IsValid() || !_nview.IsOwner())
+            {
+                return;
+            }
+            var defender = role == VillageResidentRole.Headman
+                || role == VillageResidentRole.Jarl
+                || role == VillageResidentRole.Hersir
+                || role == VillageResidentRole.Guard
+                || role == VillageResidentRole.Housecarl;
+            var weaponSpec = SlotSpec(0);
+            if (!string.IsNullOrEmpty(weaponSpec)
+                && (!(defender || role == VillageResidentRole.Seer)
+                    || !weaponSpec.StartsWith("Club:")))
+            {
+                return;
+            }
+            if (!defender)
+            {
+                SetGeneratedItem(role == VillageResidentRole.Seer ? "KnifeFlint" : "Club");
+                return;
+            }
+
+            if (tier >= WildSettlementTier.GreatHold)
+            {
+                SetGeneratedItem("SwordBlackmetal");
+                SetGeneratedItem("ShieldBlackmetal");
+                SetGeneratedItem("HelmetPadded");
+                SetGeneratedItem("ArmorPaddedCuirass");
+                SetGeneratedItem("ArmorPaddedGreaves");
+            }
+            else if (tier >= WildSettlementTier.Hold)
+            {
+                SetGeneratedItem("SwordIron");
+                SetGeneratedItem("ShieldIronSquare");
+                SetGeneratedItem("HelmetIron");
+                SetGeneratedItem("ArmorIronChest");
+                SetGeneratedItem("ArmorIronLegs");
+            }
+            else if (tier >= WildSettlementTier.Hamlet)
+            {
+                SetGeneratedItem("SwordBronze");
+                SetGeneratedItem("ShieldBronzeBuckler");
+                SetGeneratedItem("HelmetBronze");
+                SetGeneratedItem("ArmorBronzeChest");
+                SetGeneratedItem("ArmorBronzeLegs");
+            }
+            else
+            {
+                SetGeneratedItem("SpearFlint");
+                SetGeneratedItem("ShieldWood");
+                SetGeneratedItem("HelmetLeather");
+                SetGeneratedItem("ArmorLeatherChest");
+                SetGeneratedItem("ArmorLeatherLegs");
+            }
         }
 
         internal void ClearTestItems()

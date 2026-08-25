@@ -20,12 +20,17 @@ The **Object** dropdown can spawn Settlers, Seers or one Camp-tier
 Hearthstone. A test Hearthstone is automatically founded by the host; NPC-only
 dropdowns are ignored and the preview says so before spawning.
 
-Two permanent quick-spawn buttons sit below the dropdowns:
+The settlement section has two dropdowns and explicit spawn buttons:
 
 - **Spawn Hearthstone** creates one host-owned Camp Hearthstone in front of you.
-- **Spawn Start Village** creates a 16-resident neutral Meadows village 75m
-  from the first spawn. Stand within 300m of the start; an existing nearby
-  village heart prevents accidental duplicates.
+- **Settlement** chooses Camp, Homestead, Hamlet, Village, Hold, Great Hold or
+  Jarl's Seat. The preview shows population, leader and measured site slope.
+- **Placement** chooses the best surveyed site near the host or near the first
+  spawn. First-spawn placement requires the host within 350m so the zone is
+  loaded. Water, steep foundations and existing village hearts are rejected.
+- **Spawn Settlement** prepares terrain, grounds complete building modules and
+  then creates the tiered population. **Despawn test objects** removes the
+  loaded generated settlement as one tagged batch.
 5. Run `hnh_test disable` when testing is finished.
 
 The hotkey can be changed with `Development.TestPanelHotkey`. Public and
@@ -45,10 +50,12 @@ dedicated servers should leave `Development.EnableTestTools` false.
 - selected-unit positioning and gear access;
 - selected Follow, Hold and Retreat orders;
 - whole-Hird orders, formation cycling and combat-stance cycling.
-- one-click local-Hird disband and safe cleanup of panel-created units.
+- temporary village-relationship reset for repeatable combat testing;
+- one-click local-Hird disband and safe cleanup of panel-created units,
+  Hearthstones and generated settlements.
 
-The panel marks every unit it creates. **Despawn test units** deletes only those
-marked units, while **Disband all Hird** releases the local player's complete
+The panel marks every unit and settlement object it creates. **Despawn test
+objects** deletes only those marked objects, while **Disband all Hird** releases the local player's complete
 warband, including stowed members. Ordinary world settlers are never removed
 by the despawn action.
 

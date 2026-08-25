@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Jotunn.Managers;
+using HearthAndHird.Network;
 using UnityEngine;
 using UnityEngine.UI;
 using VikingSettlements.Npcs;
@@ -15,7 +16,7 @@ namespace VikingSettlements.Development
     internal static class HearthAndHirdTestPanel
     {
         private const float PanelWidth = 920f;
-        private const float PanelHeight = 880f;
+        private const float PanelHeight = 980f;
 
         private static readonly string[] ObjectNames = { "Settler", "Seer", "Hearthstone" };
         private static readonly string[] StateNames = { "Wild", "Hird follower", "Assigned settler" };
@@ -27,16 +28,32 @@ namespace VikingSettlements.Development
             { "Level 1 (0 stars)", "Level 2 (1 star)", "Level 3 (2 stars)" };
         private static readonly string[] KitNames =
             { "Unarmed", "Bronze sword", "Iron sword", "Archer", "Plains warrior" };
+        private static readonly WildSettlementTier[] VillageTiers =
+        {
+            WildSettlementTier.Camp, WildSettlementTier.Homestead,
+            WildSettlementTier.Hamlet, WildSettlementTier.Village,
+            WildSettlementTier.Hold, WildSettlementTier.GreatHold,
+            WildSettlementTier.JarlsSeat,
+        };
+        private static readonly string[] VillageNames =
+            { "Camp", "Homestead", "Hamlet", "Village", "Hold", "Great Hold", "Jarl's Seat" };
+        private static readonly string[] VillagePlacementNames =
+            { "Best site near me", "Near first spawn" };
 
         private static GameObject _panel;
         private static SettlerRecruitable _selected;
         private static Text _previewText;
+        private static Text _villagePreviewText;
         private static int _unitIndex;
         private static int _stateIndex = 1;
         private static int _countIndex;
         private static int _levelIndex;
         private static int _jobIndex;
         private static int _kitIndex = 1;
+        private static int _villageIndex = 3;
+        private static int _villagePlacementIndex;
+        private static VillageSpawnPlan _villagePlan;
+        private static string _villagePlanStatus = "Select a settlement type.";
 
         internal static void OnUpdate()
         {
@@ -83,6 +100,7 @@ namespace VikingSettlements.Development
                 UnityEngine.Object.Destroy(_panel);
                 _panel = null;
                 _previewText = null;
+                _villagePreviewText = null;
                 GUIManager.BlockInput(false);
             }
         }
@@ -127,45 +145,63 @@ namespace VikingSettlements.Development
             _previewText = preview.GetComponent<Text>();
             Button("SPAWN", 315f, -314f, SpawnConfigured, 180f, 48f);
 
-            Section("Quick world spawns", -365f);
-            Button("SPAWN HEARTHSTONE", -170f, -397f,
-                () => SpawnHearthstone(Player.m_localPlayer), 290f, 40f);
-            Button("SPAWN START VILLAGE", 170f, -397f,
-                SpawnNeutralStartVillage, 290f, 40f);
+            Section("Spawn a village or town", -365f);
+            FieldLabel("HEARTHSTONE", -320f, -393f);
+            FieldLabel("SETTLEMENT", -105f, -393f);
+            FieldLabel("PLACEMENT", 120f, -393f);
+            Button("SPAWN HEARTHSTONE", -320f, -424f,
+                () => SpawnHearthstone(Player.m_localPlayer), 185f, 38f);
+            DropDown(VillageNames, _villageIndex, -105f, -424f, value =>
+            {
+                _villageIndex = value;
+                InvalidateVillagePlan();
+            }, 200f);
+            DropDown(VillagePlacementNames, _villagePlacementIndex, 120f, -424f, value =>
+            {
+                _villagePlacementIndex = value;
+                InvalidateVillagePlan();
+            }, 205f);
+            Button("SPAWN SETTLEMENT", 340f, -424f, SpawnSelectedVillage, 190f, 38f);
+            EnsureVillagePlan();
+            var villagePreview = Label(VillagePlanPreview(), -405f, -465f, 14,
+                new Color(0.78f, 0.91f, 0.72f), 810f,
+                TextAnchor.MiddleLeft, false, 40f);
+            _villagePreviewText = villagePreview.GetComponent<Text>();
 
-            Section("Selected unit", -440f);
-            Label(SelectedStatus(), -405f, -473f, 15, Color.white, 810f,
+            Section("Selected unit", -510f);
+            Label(SelectedStatus(), -405f, -543f, 15, Color.white, 810f,
                 TextAnchor.UpperLeft, false, 46f);
-            Button("Previous", -320f, -527f, () => SelectRelative(-1), 140f);
-            Button("Nearest", -160f, -527f, SelectNearest, 140f);
-            Button("Next", 0f, -527f, () => SelectRelative(1), 140f);
-            Button("Teleport here", 160f, -527f, TeleportSelected, 140f);
-            Button("Open gear", 320f, -527f, OpenGear, 140f);
+            Button("Previous", -320f, -597f, () => SelectRelative(-1), 140f);
+            Button("Nearest", -160f, -597f, SelectNearest, 140f);
+            Button("Next", 0f, -597f, () => SelectRelative(1), 140f);
+            Button("Teleport here", 160f, -597f, TeleportSelected, 140f);
+            Button("Open gear", 320f, -597f, OpenGear, 140f);
 
-            Button("Make wild", -320f, -572f, () => SetSelectedState(SettlerState.Wild), 140f);
-            Button("Join Hird", -160f, -572f, () => SetSelectedState(SettlerState.Following), 140f);
-            Button("Assign", 0f, -572f, () => SetSelectedState(SettlerState.Assigned), 140f);
-            Button("Previous job", 160f, -572f, () => CycleJob(-1), 140f);
-            Button("Next job", 320f, -572f, () => CycleJob(1), 140f);
-            Button("Selected follow", -320f, -612f, () => OrderSelected(PartyStance.Follow), 140f);
-            Button("Selected hold", -160f, -612f, () => OrderSelected(PartyStance.Hold), 140f);
-            Button("Selected retreat", 0f, -612f, () => OrderSelected(PartyStance.Fallback), 140f);
-            Button("Level down", 180f, -612f, () => ChangeLevel(-1), 140f);
-            Button("Level up", 340f, -612f, () => ChangeLevel(1), 140f);
+            Button("Make wild", -320f, -642f, () => SetSelectedState(SettlerState.Wild), 140f);
+            Button("Join Hird", -160f, -642f, () => SetSelectedState(SettlerState.Following), 140f);
+            Button("Assign", 0f, -642f, () => SetSelectedState(SettlerState.Assigned), 140f);
+            Button("Previous job", 160f, -642f, () => CycleJob(-1), 140f);
+            Button("Next job", 320f, -642f, () => CycleJob(1), 140f);
+            Button("Selected follow", -320f, -682f, () => OrderSelected(PartyStance.Follow), 140f);
+            Button("Selected hold", -160f, -682f, () => OrderSelected(PartyStance.Hold), 140f);
+            Button("Selected retreat", 0f, -682f, () => OrderSelected(PartyStance.Fallback), 140f);
+            Button("Level down", 180f, -682f, () => ChangeLevel(-1), 140f);
+            Button("Level up", 340f, -682f, () => ChangeLevel(1), 140f);
 
-            Section("Whole local Hird", -659f);
-            Button("All follow", -320f, -692f, () => OrderAll(PartyStance.Follow), 140f);
-            Button("All hold", -160f, -692f, () => OrderAll(PartyStance.Hold), 140f);
-            Button("All retreat", 0f, -692f, () => OrderAll(PartyStance.Fallback), 140f);
-            Button("Formation", 160f, -692f, CycleFormation, 140f);
-            Button("Combat stance", 320f, -692f, CycleCombatStance, 140f);
+            Section("Whole local Hird", -729f);
+            Button("All follow", -320f, -762f, () => OrderAll(PartyStance.Follow), 140f);
+            Button("All hold", -160f, -762f, () => OrderAll(PartyStance.Hold), 140f);
+            Button("All retreat", 0f, -762f, () => OrderAll(PartyStance.Fallback), 140f);
+            Button("Formation", 160f, -762f, CycleFormation, 140f);
+            Button("Combat stance", 320f, -762f, CycleCombatStance, 140f);
 
-            Section("Cleanup", -737f);
-            Button("DISBAND ALL HIRD", -240f, -776f, DisbandAllHird, 220f, 40f);
-            Button("DESPAWN TEST OBJECTS", 0f, -776f, DespawnTestObjects, 220f, 40f);
-            Button("Close", 240f, -776f, Close, 180f, 40f);
-            Label("Despawn removes only units and Hearthstones created by this panel. Disband releases your entire local Hird.",
-                -405f, -827f, 14, new Color(0.78f, 0.73f, 0.63f), 810f,
+            Section("Cleanup and relationship testing", -807f);
+            Button("DISBAND ALL HIRD", -300f, -846f, DisbandAllHird, 190f, 40f);
+            Button("RESET RELATION", -95f, -846f, ResetSelectedRelationship, 190f, 40f);
+            Button("DESPAWN TEST OBJECTS", 120f, -846f, DespawnTestObjects, 215f, 40f);
+            Button("Close", 325f, -846f, Close, 150f, 40f);
+            Label("Despawn removes loaded units, Hearthstones and settlements created by this panel. Disband releases your local Hird.",
+                -405f, -897f, 14, new Color(0.78f, 0.73f, 0.63f), 810f,
                 TextAnchor.MiddleCenter, false, 24f);
         }
 
@@ -202,11 +238,11 @@ namespace VikingSettlements.Development
         }
 
         private static void DropDown(string[] options, int value, float x, float y,
-            Action<int> changed)
+            Action<int> changed, float width = 240f)
         {
             var go = GUIManager.Instance.CreateDropDown(_panel.transform,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(x, y), 16, 240f, 36f);
+                new Vector2(x, y), 16, width, 36f);
             var dropdown = go.GetComponent<Dropdown>();
             dropdown.ClearOptions();
             dropdown.AddOptions(options.ToList());
@@ -233,6 +269,8 @@ namespace VikingSettlements.Development
         private static void RefreshPreview()
         {
             if (_previewText != null) _previewText.text = SpawnPreview();
+            EnsureVillagePlan();
+            if (_villagePreviewText != null) _villagePreviewText.text = VillagePlanPreview();
         }
 
         private static string SpawnPreview()
@@ -257,7 +295,8 @@ namespace VikingSettlements.Development
             var hird = units.Count(unit => unit.State == SettlerState.Following
                 && unit.GetComponent<PartyMember>()?.IsActiveMember == true);
             var hearthstones = PlayerSettlement.Instances.Count(settlement => settlement.IsTestSpawned);
-            return $"Loaded controllable: {units.Count}    Test-spawned: {test}    Test Hearthstones: {hearthstones}    Local Hird: {hird}    "
+            var villages = VillageHeart.Instances.Count(heart => heart.IsTestGenerated);
+            return $"Loaded controllable: {units.Count}    Test-spawned: {test}    Test Hearthstones: {hearthstones}    Test settlements: {villages}    Local Hird: {hird}    "
                 + $"Formation: {PartySystem.Formation}    Combat: {PartySystem.CombatStance}";
         }
 
@@ -272,9 +311,15 @@ namespace VikingSettlements.Development
             var distance = Player.m_localPlayer != null
                 ? Vector3.Distance(Player.m_localPlayer.transform.position, _selected.transform.position) : 0f;
             var tag = _selected.IsTestSpawned ? "TEST" : "WORLD";
+            var resident = _selected.GetComponent<VillageResident>();
+            var heart = resident != null ? resident.Heart : null;
+            var village = heart != null ? $" • {heart.SettlementName}" : "";
+            var homeDistance = resident != null
+                ? $" • {Vector3.Distance(_selected.transform.position, resident.Home):0.0}m from home"
+                : "";
             return $"{tag} • {_selected.GetHoverName()} • Level {_selected.Level} "
                 + $"({_selected.Level - 1} stars) • {_selected.State}/{_selected.Job} • "
-                + $"{distance:0.0}m • ZDO owner {owner}";
+                + $"{distance:0.0}m{village}{homeDistance} • ZDO owner {owner}";
         }
 
         private static List<SettlerRecruitable> Candidates()
@@ -358,41 +403,54 @@ namespace VikingSettlements.Development
             Rebuild();
         }
 
-        private static void SpawnNeutralStartVillage()
+        private static void InvalidateVillagePlan()
         {
-            var player = Player.m_localPlayer;
-            if (!TestAuthority.IsHost || player == null || ZoneSystem.instance == null)
-            {
-                return;
-            }
-            if (!ZoneSystem.instance.GetLocationIcon("StartTemple", out var start))
-            {
-                player.Message(MessageHud.MessageType.Center,
-                    "The world-start location is not available yet.");
-                return;
-            }
-            if (Vector3.Distance(player.transform.position, start) > 300f)
-            {
-                player.Message(MessageHud.MessageType.Center,
-                    "Travel within 300 metres of the first spawn before creating the test village.");
-                return;
-            }
+            _villagePlan = null;
+            _villagePlanStatus = "Finding a suitable site…";
+        }
 
-            var origin = start + Vector3.right * 75f;
-            origin.y = ZoneSystem.instance.GetGroundHeight(origin);
-            if (VillageHeart.FindNearest(origin, 55f) != null)
+        private static void EnsureVillagePlan()
+        {
+            if (_villagePlan != null)
             {
-                player.Message(MessageHud.MessageType.Center,
-                    "A neutral village already exists beside the first spawn.");
                 return;
             }
-            var facing = start - origin;
-            facing.y = 0f;
-            var rotation = Quaternion.LookRotation(facing, Vector3.up);
-            var placed = LayoutBuilder.BuildAt(origin, rotation, Layouts.NeutralStartVillage());
-            player.Message(MessageHud.MessageType.Center,
-                $"Created a 16-settler neutral test village near the first spawn ({placed} objects).");
-            Rebuild();
+            var player = Player.m_localPlayer;
+            var tier = VillageTiers[Mathf.Clamp(_villageIndex, 0, VillageTiers.Length - 1)];
+            if (!TestVillageSpawner.TryPlan(player, tier, _villagePlacementIndex == 1,
+                out _villagePlan, out _villagePlanStatus))
+            {
+                _villagePlan = null;
+            }
+        }
+
+        private static string VillagePlanPreview()
+        {
+            EnsureVillagePlan();
+            if (_villagePlan == null)
+            {
+                return "Site unavailable: " + _villagePlanStatus;
+            }
+            var distance = Player.m_localPlayer != null
+                ? Vector3.Distance(Player.m_localPlayer.transform.position, _villagePlan.Origin)
+                : 0f;
+            return "Ready: " + _villagePlan.Summary
+                + $" • {distance:0}m away. Structures are grounded by foundation after terrain preparation.";
+        }
+
+        private static void SpawnSelectedVillage()
+        {
+            EnsureVillagePlan();
+            var player = Player.m_localPlayer;
+            if (_villagePlan == null || player == null)
+            {
+                player?.Message(MessageHud.MessageType.Center, _villagePlanStatus);
+                return;
+            }
+            var plan = _villagePlan;
+            _villagePlan = null;
+            Close();
+            TestVillageSpawner.Begin(player, plan);
         }
 
         private static Vector3 SpawnPosition(Player player, int index, int count)
@@ -531,10 +589,35 @@ namespace VikingSettlements.Development
             Rebuild();
         }
 
+        private static void ResetSelectedRelationship()
+        {
+            var player = Player.m_localPlayer;
+            if (_selected == null || player == null)
+            {
+                player?.Message(MessageHud.MessageType.Center,
+                    "Select a wild village resident first.");
+                return;
+            }
+            var resident = _selected.GetComponent<VillageResident>();
+            resident?.Heart?.ClearTemporaryHostility(player);
+            _selected.GetComponent<SettlerReputation>()?.ClearTemporaryHostility(player);
+            player.Message(MessageHud.MessageType.Center,
+                "Cleared temporary brawl/hostility timers for the selected resident and village.");
+            Rebuild();
+        }
+
         private static void DespawnTestObjects()
         {
             var player = Player.m_localPlayer;
-            var units = Candidates().Where(unit => unit.IsTestSpawned).ToList();
+            var removedVillageParts = TestVillagePart.DestroyLoaded();
+            var units = Candidates().Where(unit => unit.IsTestSpawned)
+                .Where(unit =>
+                {
+                    var view = unit.GetComponent<ZNetView>();
+                    return view == null || !view.IsValid()
+                        || string.IsNullOrEmpty(
+                            view.GetZDO().GetString(HearthZdoKeys.VillageTestBatch));
+                }).ToList();
             var removedUnits = 0;
             foreach (var unit in units)
             {
@@ -550,7 +633,8 @@ namespace VikingSettlements.Development
             _selected = null;
             player?.Message(MessageHud.MessageType.Center,
                 $"Despawned {removedUnits} test unit{(removedUnits == 1 ? "" : "s")} and "
-                + $"{removedHearthstones} test Hearthstone{(removedHearthstones == 1 ? "" : "s")}.");
+                + $"{removedHearthstones} test Hearthstone{(removedHearthstones == 1 ? "" : "s")}; "
+                + $"removed {removedVillageParts} loaded test-village object{(removedVillageParts == 1 ? "" : "s")}.");
             Rebuild();
         }
 

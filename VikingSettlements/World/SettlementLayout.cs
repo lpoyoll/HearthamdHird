@@ -14,6 +14,7 @@ namespace VikingSettlements.World
         {
             public string Prefab;
             public Vector3 Position;
+            public Vector3 Foundation;
             public float RotationY;
         }
 
@@ -31,6 +32,19 @@ namespace VikingSettlements.World
             {
                 Prefab = prefab,
                 Position = new Vector3(x, y, z),
+                Foundation = Vector3.zero,
+                RotationY = rotY,
+            });
+        }
+
+        /// <summary>Adds a loose object that should be grounded at its own position.</summary>
+        public void AddGrounded(string prefab, float x, float y, float z, float rotY = 0f)
+        {
+            Parts.Add(new Part
+            {
+                Prefab = prefab,
+                Position = new Vector3(x, y, z),
+                Foundation = new Vector3(x, 0f, z),
                 RotationY = rotY,
             });
         }
@@ -46,6 +60,7 @@ namespace VikingSettlements.World
                 {
                     Prefab = part.Prefab,
                     Position = rotation * part.Position + offset,
+                    Foundation = rotation * part.Foundation + offset,
                     RotationY = part.RotationY + rotY,
                 });
             }

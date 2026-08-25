@@ -34,5 +34,13 @@ namespace HearthAndHird.Network
         internal const string HearthRegister = "hnh_hearth_register";
         internal const string SettlerHearthUser = "hnh_settler_hearth_user";
         internal const string SettlerHearthId = "hnh_settler_hearth_id";
+
+        internal const string VillageTier = "hnh_village_tier";
+        internal const string VillageName = "hnh_village_name";
+        internal const string VillageTestBatch = "hnh_test_village_batch";
+        internal const string VillageResidentUser = "hnh_village_user";
+        internal const string VillageResidentId = "hnh_village_id";
+        internal const string VillageResidentRole = "hnh_village_role";
+        internal const string VillageResidentHome = "hnh_village_home";
     }
 }

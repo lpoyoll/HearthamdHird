@@ -1,7 +1,7 @@
 {
   "name": "HearthAndHird",
   "description": "A Viking settlement and warband simulation for Valheim, built as a save-compatible derivative of VikingSettlements.",
-  "version_number": "1.13.4",
+  "version_number": "1.13.5",
   "website_url": "https://github.com/lpoyoll/HearthamdHird",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2333",

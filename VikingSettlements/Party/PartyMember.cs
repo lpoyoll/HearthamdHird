@@ -266,7 +266,7 @@ namespace VikingSettlements.Party
             var orderedAttack = _directives != null
                 && _directives.Kind == SettlerDirectiveKind.Attack;
             if (target != null && !target.IsDead()
-                && BaseAI.IsEnemy(owner, target)
+                && PartySystem.CanTarget(owner, target)
                 && (orderedAttack || WithinCombatLeash(target, owner)))
             {
                 return;
@@ -279,7 +279,7 @@ namespace VikingSettlements.Party
             if (_recentAttacker != null
                 && Time.time - _recentAttackerTime <= RetaliationMemorySeconds
                 && !_recentAttacker.IsDead()
-                && BaseAI.IsEnemy(owner, _recentAttacker)
+                && PartySystem.CanTarget(owner, _recentAttacker)
                 && Vector3.Distance(transform.position, _recentAttacker.transform.position)
                     <= RetaliationRange)
             {
@@ -390,7 +390,7 @@ namespace VikingSettlements.Party
         {
             _lastDamageTime = Time.time;
             var owner = FindOwnerPlayer();
-            if (attacker == null || owner == null || !BaseAI.IsEnemy(owner, attacker))
+            if (attacker == null || owner == null || !PartySystem.CanTarget(owner, attacker))
             {
                 return;
             }

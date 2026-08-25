@@ -1,4 +1,4 @@
-# VikingSettlements
+# Hearth & Hird
 
 > **Hearth & Hird development branch:** this derivative retains the
 > VikingSettlements plugin identity and save format while its systems are
@@ -186,6 +186,24 @@ the same way; world and raid settings are admin-only and sync from the server.
   `devcommands`) places one in already-explored terrain.
 - Configurable: settlement counts per world, recruit cost, settlement size,
   work speed, raid chance — server-synced where it matters.
+
+## Development test menu
+
+In single-player or as the listen-server host, open F5 and run `devcommands`,
+then `hnh_test enable`. Press **F7** to open the test muster.
+
+- Configure a settler/Seer with dropdowns for allegiance, count, level, job and
+  equipment; the green preview shows exactly what **Spawn** will create.
+- Use the settlement dropdown to create a Camp, Homestead, Hamlet, Village,
+  Hold, Great Hold or Jarl's Seat. Placement can survey near you or near the
+  first spawn, and the preview reports population, leader and site slope.
+- Select loaded residents to change state, job, level, equipment and orders.
+- Reset temporary village hostility, disband the whole local Hird or remove
+  loaded test objects without touching ordinary world structures.
+
+Remote clients cannot use development mutations. The host performs spawning
+and all persistent state is written to normal Valheim ZDOs for multiplayer
+visibility and save/load testing.
 
 ## Configuration
 
