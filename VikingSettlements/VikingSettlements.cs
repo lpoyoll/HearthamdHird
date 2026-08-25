@@ -33,6 +33,7 @@ namespace VikingSettlements
             CommandManager.Instance.AddConsoleCommand(new Commands.SpawnSettlementCommand());
             CommandManager.Instance.AddConsoleCommand(new Commands.FindSettlementCommand());
             CommandManager.Instance.AddConsoleCommand(new Commands.PartyCommand());
+            CommandManager.Instance.AddConsoleCommand(new Commands.InspectSettlerCommand());
 
             Jotunn.Logger.LogInfo($"{PluginName} v{PluginVersion} loaded - settlements appear in newly generated world areas");
         }

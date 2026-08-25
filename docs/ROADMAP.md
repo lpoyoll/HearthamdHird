@@ -6,9 +6,13 @@
 - [x] Add persistent generated profile and aptitude data.
 - [x] Add a revisioned, ZDO-backed directive shared by hird and workers.
 - [x] Add an opt-in physical-task registry and owner-side runner.
-- [ ] Replace the Dvergr compatibility visual with a player-body visual adapter.
-- [ ] Persist and render hair, beard, skin and hair colour choices.
-- [ ] Add development inspection commands for profile and directive state.
+- [x] Replace the Dvergr compatibility visual with a defensive player-body visual adapter.
+- [x] Persist and render hair, beard, skin and hair colour choices.
+- [x] Add a development inspection command for profile and directive state.
+
+`hnh_inspect` reports the nearest settler within 20 metres. The player-body
+adapter deliberately retains the original compatibility visual when required
+vanilla Player anchors cannot be mapped after a Valheim update.
 
 ## 0.2 — Hird commands
 
@@ -42,4 +46,3 @@
 | 0.8 | Equipment, skills and progression |
 | 0.9 | Blueprint construction and builder AI |
 | 1.0 | Morale, raids, balance and multiplayer hardening |
-

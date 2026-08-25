@@ -14,9 +14,9 @@ namespace HearthAndHird.NPC
 
     /// <summary>
     /// Persistent, deterministic identity and base aptitudes for a settler.
-    /// Appearance values are stored now even though the compatibility prefab
-    /// still uses a Dvergr visual; the later player-body renderer consumes the
-    /// same values without changing a settler's identity.
+    /// Appearance values are consumed by SettlerAppearance when the defensive
+    /// player-body visual adapter is available. The profile remains useful if
+    /// that adapter falls back to the compatibility creature visual.
     /// </summary>
     public sealed class SettlerProfile : MonoBehaviour
     {
@@ -46,6 +46,7 @@ namespace HearthAndHird.NPC
         internal int Courage => GetInt(HearthZdoKeys.Courage, 50);
         internal int WorkEthic => GetInt(HearthZdoKeys.WorkEthic, 50);
         internal int Loyalty => GetInt(HearthZdoKeys.Loyalty, 50);
+        internal bool IsReady => GetInt(HearthZdoKeys.ProfileVersion) >= CurrentVersion;
 
         private int GetInt(string key, int fallback = 0)
         {
@@ -54,7 +55,7 @@ namespace HearthAndHird.NPC
                 : fallback;
         }
 
-        private void EnsureCreated()
+        internal void EnsureCreated()
         {
             if (_nview == null || !_nview.IsValid() || !_nview.IsOwner())
             {

@@ -27,6 +27,20 @@ No Kuku source has been copied in the human-settler-foundation change. If code
 is ported later, the commit, original file and material changes must be recorded
 in `THIRD_PARTY_NOTICES.md` in the same commit.
 
+## Additional implementation research
+
+The player-body adapter was written specifically for Hearth & Hird after
+reviewing public implementations that exercise Valheim's player visual and
+equipment systems:
+
+- Cheb's Mercenaries, reference commit
+  `4c5bb0596d00acb0573969a45a74007778cfec41`
+- DRibeiro02/valheim-mods (`NpcValheim`), reference commit
+  `1cd6cf5c68ed8dc082ab6b7425be06e67cb632c1`
+
+No source from either implementation was copied. They remain research
+references rather than code or asset upstreams.
+
 ## Suggested local remotes
 
 ```bash
@@ -38,4 +52,3 @@ git fetch upstream-kuku
 
 These remotes are for review and selective ports. Do not merge either upstream
 wholesale into a feature branch.
-

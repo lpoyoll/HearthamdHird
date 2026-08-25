@@ -111,8 +111,10 @@ namespace VikingSettlements.Npcs
                 Object.DestroyImmediate(npcTalk);
             }
 
+            HearthAndHird.NPC.PlayerBodyVisualAdapter.TryApply(clone);
             clone.AddComponent<SettlerIdentity>();
             clone.AddComponent<HearthAndHird.NPC.SettlerProfile>();
+            clone.AddComponent<HearthAndHird.NPC.SettlerAppearance>();
             clone.AddComponent<HearthAndHird.AI.SettlerDirectiveState>();
             clone.AddComponent<HearthAndHird.Jobs.SettlerTaskBrain>();
             clone.AddComponent<SettlerChatter>();
