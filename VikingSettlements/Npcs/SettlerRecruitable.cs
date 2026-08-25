@@ -145,10 +145,72 @@ namespace VikingSettlements.Npcs
                 return;
             }
             var settlement = PlayerSettlement.FindForSettler(this);
-            settlement?.RemoveFromRegister(_nview.GetZDO().m_uid);
             _nview.ClaimOwnership();
             _nview.GetZDO().Set(HearthZdoKeys.SettlerHearthUser, 0L);
             _nview.GetZDO().Set(HearthZdoKeys.SettlerHearthId, 0L);
+            settlement?.RemoveFromRegister(_nview.GetZDO().m_uid);
+        }
+
+        /// <summary>Authoritative state switch used only by the host test panel.</summary>
+        internal bool ConfigureForTest(Player player, SettlerState state,
+            PlayerSettlement settlement = null)
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost || player == null
+                || _nview == null || !_nview.IsValid())
+            {
+                return false;
+            }
+            if (RecruiterId != 0L && RecruiterId != player.GetPlayerID())
+            {
+                return false;
+            }
+
+            _nview.ClaimOwnership();
+            if (_member != null && _member.IsActiveMember)
+            {
+                Party.PartySystem.RemoveMember(_member.Id);
+                _member.ClearMember();
+            }
+            ClearSettlement();
+            Job = SettlerJob.Villager;
+            State = state;
+
+            if (state == SettlerState.Wild)
+            {
+                _nview.GetZDO().Set(OwnerKey, 0L);
+                _directives?.ApplyLegacy(SettlerDirectiveKind.Idle, transform.position);
+                _ai?.SetFollowTarget(null);
+                _ai?.SetPatrolPoint();
+                return true;
+            }
+
+            _nview.GetZDO().Set(OwnerKey, player.GetPlayerID());
+            if (state == SettlerState.Following)
+            {
+                _directives?.ApplyLegacy(SettlerDirectiveKind.Follow, Vector3.zero,
+                    issuerId: player.GetPlayerID());
+                _ai?.SetFollowTarget(player.gameObject);
+                if (_member != null && player == Player.m_localPlayer)
+                {
+                    Party.PartySystem.AddMember(player, _member);
+                }
+                return true;
+            }
+
+            if (settlement == null || settlement.OwnerId != player.GetPlayerID())
+            {
+                State = SettlerState.Wild;
+                _nview.GetZDO().Set(OwnerKey, 0L);
+                return false;
+            }
+            _nview.GetZDO().Set(HomeKey, settlement.transform.position);
+            BindSettlement(settlement);
+            _directives?.ApplyLegacy(SettlerDirectiveKind.Idle, settlement.transform.position,
+                issuerId: player.GetPlayerID());
+            _ai?.SetFollowTarget(null);
+            _ai?.SetPatrolPoint(settlement.transform.position);
+            settlement.UpdateRegister(this);
+            return true;
         }
 
         private void Update()

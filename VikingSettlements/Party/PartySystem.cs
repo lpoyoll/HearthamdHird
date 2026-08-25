@@ -84,6 +84,21 @@ namespace VikingSettlements.Party
         internal static HirdCombatStance CombatStance => _combatStance;
         internal static HirdFormation Formation => _formation;
 
+        internal static void TestCommandAll(Player player, PartyStance stance)
+        {
+            CommandAll(player, stance);
+        }
+
+        internal static void TestCycleCombatStance(Player player)
+        {
+            CycleCombatStance(player);
+        }
+
+        internal static void TestCycleFormation(Player player)
+        {
+            CycleFormation(player);
+        }
+
         public static void OnUpdate()
         {
             var player = Player.m_localPlayer;

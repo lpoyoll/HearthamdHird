@@ -34,6 +34,7 @@ namespace VikingSettlements
             CommandManager.Instance.AddConsoleCommand(new Commands.FindSettlementCommand());
             CommandManager.Instance.AddConsoleCommand(new Commands.PartyCommand());
             CommandManager.Instance.AddConsoleCommand(new Commands.InspectSettlerCommand());
+            CommandManager.Instance.AddConsoleCommand(new Commands.HearthAndHirdTestCommand());
 
             Jotunn.Logger.LogInfo($"{PluginName} v{PluginVersion} loaded - settlements appear in newly generated world areas");
         }
@@ -58,6 +59,7 @@ namespace VikingSettlements
             Raids.RaidEvents.EnsureRegistered();
             Party.PartySystem.OnUpdate();
             Npcs.SettlerTalkPanel.OnUpdate();
+            Development.HearthAndHirdTestPanel.OnUpdate();
         }
 
         private void AddLocalizations()

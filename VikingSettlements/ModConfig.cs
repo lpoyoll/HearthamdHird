@@ -52,6 +52,8 @@ namespace VikingSettlements
         public static ConfigEntry<bool> WarlordEnabled;
         public static ConfigEntry<float> WarlordChance;
         public static ConfigEntry<int> WarlordPeaceDays;
+        public static ConfigEntry<bool> EnableTestTools;
+        public static ConfigEntry<KeyboardShortcut> TestPanelHotkey;
 
         public static void Init(ConfigFile config)
         {
@@ -359,6 +361,16 @@ namespace VikingSettlements
                 "Talk to the settler you are looking at (or the nearest within 5 m): opens " +
                 "a panel with their health, hunger and everything their job still needs " +
                 "before they will work. Client-side.");
+
+            EnableTestTools = config.Bind("Development", "EnableTestTools", false,
+                new ConfigDescription(
+                    "Enables the host-only Hearth & Hird test panel. Keep disabled on public servers.",
+                    null,
+                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
+
+            TestPanelHotkey = config.Bind("Development", "TestPanelHotkey",
+                new KeyboardShortcut(KeyCode.F7),
+                "Opens the host-only Hearth & Hird test panel when EnableTestTools is true.");
         }
     }
 }

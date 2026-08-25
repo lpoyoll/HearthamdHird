@@ -26,6 +26,8 @@ namespace VikingSettlements.Settlements
         public const string TierKey = "vs_tier";
         public const string PeaceDayKey = "vs_peaceday";
         private const int NameCharLimit = 30;
+        private const string RegisterUpdateRpc = "HnH_RegisterUpdate";
+        private const string RegisterRemoveRpc = "HnH_RegisterRemove";
 
         public static readonly List<PlayerSettlement> Instances = new List<PlayerSettlement>();
 
@@ -54,6 +56,11 @@ namespace VikingSettlements.Settlements
         {
             _nview = GetComponent<ZNetView>();
             _piece = GetComponent<Piece>();
+            if (_nview != null)
+            {
+                _nview.Register<string>(RegisterUpdateRpc, RPC_UpdateRegister);
+                _nview.Register<string>(RegisterRemoveRpc, RPC_RemoveFromRegister);
+            }
             RefreshPlayerBaseArea();
         }
 
@@ -311,13 +318,22 @@ namespace VikingSettlements.Settlements
 
         internal void UpdateRegister(SettlerRecruitable settler)
         {
-            if (settler == null || _nview == null || !_nview.IsValid() || !_nview.IsOwner())
+            if (settler == null || _nview == null || !_nview.IsValid())
             {
                 return;
             }
-            var entries = ReadRegister();
-            MergeLive(entries, settler);
-            WriteRegister(entries);
+            var settlerView = settler.GetComponent<ZNetView>();
+            if (settlerView == null || !settlerView.IsValid())
+            {
+                return;
+            }
+            if (_nview.IsOwner())
+            {
+                UpdateRegisterOwner(settler);
+                return;
+            }
+            _nview.InvokeRPC(_nview.GetZDO().GetOwner(), RegisterUpdateRpc,
+                FormatId(settlerView.GetZDO().m_uid));
         }
 
         internal void RemoveFromRegister(ZDOID id)
@@ -326,10 +342,105 @@ namespace VikingSettlements.Settlements
             {
                 return;
             }
-            _nview.ClaimOwnership();
+            if (_nview.IsOwner())
+            {
+                RemoveFromRegisterOwner(id);
+                return;
+            }
+            _nview.InvokeRPC(_nview.GetZDO().GetOwner(), RegisterRemoveRpc, FormatId(id));
+        }
+
+        private void RPC_UpdateRegister(long sender, string rawId)
+        {
+            if (!_nview.IsOwner() || !TryParseId(rawId, out var id))
+            {
+                return;
+            }
+            var settler = FindLoadedSettler(id);
+            if (settler == null || settler.State != SettlerState.Assigned
+                || (!settler.BelongsTo(this)
+                    && (settler.HasHearthstone || FindContaining(settler.Home) != this)))
+            {
+                return;
+            }
+            UpdateRegisterOwner(settler);
+        }
+
+        private void RPC_RemoveFromRegister(long sender, string rawId)
+        {
+            if (!_nview.IsOwner() || !TryParseId(rawId, out var id))
+            {
+                return;
+            }
+            // Never let a remote peer erase a living member that is still
+            // assigned to this Hearthstone. Death/unassignment destroys or
+            // changes that association before the removal request arrives.
+            var settler = FindLoadedSettler(id);
+            var character = settler != null ? settler.GetComponent<Character>() : null;
+            var settlerView = settler != null ? settler.GetComponent<ZNetView>() : null;
+            if (settler != null && settler.State == SettlerState.Assigned
+                && settler.BelongsTo(this) && character != null && !character.IsDead()
+                && (settlerView == null || !settlerView.IsValid()
+                    || settlerView.GetZDO().GetOwner() != sender))
+            {
+                return;
+            }
+            RemoveFromRegisterOwner(id);
+        }
+
+        private void UpdateRegisterOwner(SettlerRecruitable settler)
+        {
+            if (!_nview.IsOwner() || settler == null)
+            {
+                return;
+            }
+            var entries = ReadRegister();
+            MergeLive(entries, settler);
+            WriteRegister(entries);
+        }
+
+        private void RemoveFromRegisterOwner(ZDOID id)
+        {
+            if (!_nview.IsOwner())
+            {
+                return;
+            }
             var entries = ReadRegister();
             entries.RemoveAll(entry => entry.Id == id);
             WriteRegister(entries);
+        }
+
+        private static SettlerRecruitable FindLoadedSettler(ZDOID id)
+        {
+            foreach (var settler in SettlerRecruitable.Instances)
+            {
+                var view = settler != null ? settler.GetComponent<ZNetView>() : null;
+                if (view != null && view.IsValid() && view.GetZDO().m_uid == id)
+                {
+                    return settler;
+                }
+            }
+            return null;
+        }
+
+        private static string FormatId(ZDOID id)
+        {
+            return id.UserID.ToString(CultureInfo.InvariantCulture) + ":"
+                + id.ID.ToString(CultureInfo.InvariantCulture);
+        }
+
+        private static bool TryParseId(string raw, out ZDOID id)
+        {
+            id = ZDOID.None;
+            var parts = (raw ?? "").Split(':');
+            if (parts.Length != 2
+                || !long.TryParse(parts[0], NumberStyles.Integer, CultureInfo.InvariantCulture, out var user)
+                || !uint.TryParse(parts[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var number))
+            {
+                return false;
+            }
+            id = new ZDOID(user, number);
+            return true;
         }
 
         private List<RegisterEntry> ReadRegister()

@@ -148,6 +148,49 @@ namespace VikingSettlements.Npcs
             return true;
         }
 
+        /// <summary>Host-only development helper; creates no player inventory items.</summary>
+        internal bool SetTestItem(string prefabName, int quality = 1)
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost || _nview == null || !_nview.IsValid())
+            {
+                return false;
+            }
+            var prefab = ObjectDB.instance != null ? ObjectDB.instance.GetItemPrefab(prefabName) : null;
+            var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
+            if (drop == null)
+            {
+                return false;
+            }
+            var item = drop.m_itemData.Clone();
+            item.m_dropPrefab = prefab;
+            item.m_stack = 1;
+            item.m_quality = Mathf.Clamp(quality, 1, item.m_shared.m_maxQuality);
+            item.m_durability = item.GetMaxDurability();
+            var slot = SlotFor(item);
+            if (slot < 0)
+            {
+                return false;
+            }
+            _nview.ClaimOwnership();
+            _nview.GetZDO().Set(SlotKeys[slot], Spec(item));
+            _nextTick = 0f;
+            return true;
+        }
+
+        internal void ClearTestItems()
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost || _nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            for (var slot = 0; slot < SlotCount; slot++)
+            {
+                _nview.GetZDO().Set(SlotKeys[slot], "");
+            }
+            _nextTick = 0f;
+        }
+
         private void Update()
         {
             if (_nview == null || !_nview.IsValid() || !_nview.IsOwner() || _humanoid == null)
