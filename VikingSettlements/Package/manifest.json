@@ -1,8 +1,8 @@
 {
-  "name": "VikingSettlements",
-  "description": "NPC settlements: wild villages in world gen, recruitable settlers, build your own settlement, assign jobs, and defend it from native raids and rival clans.",
-  "version_number": "1.13.2",
-  "website_url": "https://github.com/abjumb/VikingSettlements",
+  "name": "HearthAndHird",
+  "description": "A Viking settlement and warband simulation for Valheim, built as a save-compatible derivative of VikingSettlements.",
+  "version_number": "1.13.3",
+  "website_url": "https://github.com/lpoyoll/HearthamdHird",
   "dependencies": [
     "denikson-BepInExPack_Valheim-5.4.2333",
     "ValheimModding-Jotunn-2.29.2"

@@ -1,5 +1,16 @@
 # Changelog
 
+### 1.13.3
+
+- Corrected the derivative's release identity: the package now installs as
+  HearthAndHird, links to its own repository and displays Hearth & Hird in the
+  BepInEx plug-in list while retaining the inherited GUID and save format.
+- Added an automatic, versioned GitHub Release on a successful master build,
+  preventing installers from falling back to upstream VikingSettlements
+  v1.13.0 when downloading the latest Hearth & Hird package.
+- Includes the Hird combat response, Hearthstone test spawning and diplomacy
+  roadmap additions from the 0.3.2 development milestone below.
+
 ### Hearth & Hird test muster 0.3.2 (development branch)
 
 - Fixed the default Defensive combat stance so Hird members acquire hostiles

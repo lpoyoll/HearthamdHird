@@ -14,8 +14,8 @@ namespace VikingSettlements
     internal class VikingSettlements : BaseUnityPlugin
     {
         public const string PluginGUID = "com.abjumb.vikingsettlements";
-        public const string PluginName = "VikingSettlements";
-        public const string PluginVersion = "1.13.2";
+        public const string PluginName = "Hearth & Hird";
+        public const string PluginVersion = "1.13.3";
 
         public static CustomLocalization Localization = LocalizationManager.Instance.GetLocalization();
 

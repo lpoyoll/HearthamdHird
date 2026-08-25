@@ -1,11 +1,12 @@
 <p align="center">
   <img src="docs/brand/banner-800x296.png" width="800"
-       alt="VikingSettlements — a pixel-art village of moss-roofed cabins at the forest's edge">
+       alt="Hearth & Hird — a pixel-art village of moss-roofed cabins at the forest's edge">
 </p>
 
-# Viking Settlements
+# Hearth & Hird
 
-A [Jötunn](https://github.com/Valheim-Modding/Jotunn)-based Valheim mod that
+A save-compatible [Jötunn](https://github.com/Valheim-Modding/Jotunn)-based
+derivative of VikingSettlements that
 adds **inhabited NPC settlements** to world generation, lets you **recruit
 settlers**, **found your own settlement**, **assign jobs**, and **defend it
 from raids**.
