@@ -18,15 +18,16 @@ vanilla Player anchors cannot be mapped after a Valheim update.
 
 - [x] Seven craftable Hird Horn tiers with biome-based follower caps (2–12).
 - [x] Horn-issued follow, hold, focused attack and retreat orders.
-- [ ] Move and defend orders.
-- Passive, defensive and aggressive stances.
-- Formation slots for line, loose, wedge, shield wall and archers behind.
+- [x] Aimed move and defend orders.
+- [x] Persistent passive, defensive and aggressive stances.
+- [x] Physical formation slots for line, loose, wedge, shield wall and archers behind.
 
 The best horn carried supplies the recruitment cap. A normal use toggles the
 hird between following and holding position; block while using it to toggle an
-emergency retreat; crouch while using it to focus the enemy under the
-crosshair. Existing over-cap parties are preserved, but cannot recruit
-additional members until their horn capacity catches up.
+emergency retreat. Crouch-use attacks an aimed enemy or moves to aimed ground;
+block+crouch-use defends the aimed point. J cycles formations and K cycles
+combat stance while a horn is carried. Existing over-cap parties are
+preserved, but cannot recruit additional members until capacity catches up.
 
 ## 0.3 — Hearthstone
 

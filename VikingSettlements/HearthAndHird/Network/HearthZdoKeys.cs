@@ -25,5 +25,8 @@ namespace HearthAndHird.Network
         internal const string DirectiveTarget = "hnh_directive_target";
         internal const string DirectiveWorkId = "hnh_directive_work";
         internal const string DirectiveIssuer = "hnh_directive_issuer";
+
+        internal const string HirdCombatStance = "hnh_hird_combat_stance";
+        internal const string HirdFormation = "hnh_hird_formation";
     }
 }

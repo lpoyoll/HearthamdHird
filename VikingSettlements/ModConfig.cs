@@ -42,6 +42,8 @@ namespace VikingSettlements
         public static ConfigEntry<KeyboardShortcut> PartyStanceKey;
         public static ConfigEntry<KeyboardShortcut> PartyFallbackKey;
         public static ConfigEntry<KeyboardShortcut> PartyFocusKey;
+        public static ConfigEntry<KeyboardShortcut> PartyCombatStanceKey;
+        public static ConfigEntry<KeyboardShortcut> PartyFormationKey;
         public static ConfigEntry<KeyboardShortcut> TalkHotkey;
         public static ConfigEntry<bool> HomesMatter;
         public static ConfigEntry<bool> MoraleEnabled;
@@ -295,6 +297,14 @@ namespace VikingSettlements
                 new KeyboardShortcut(KeyCode.Y),
                 "Orders the whole party onto the enemy under your crosshair. Members " +
                 "falling back stay out of it. Client-side.");
+
+            PartyCombatStanceKey = config.Bind("Hird", "CombatStanceHotkey",
+                new KeyboardShortcut(KeyCode.K),
+                "Cycles Passive, Defensive and Aggressive combat behaviour while a Hird Horn is carried. Client-side.");
+
+            PartyFormationKey = config.Bind("Hird", "FormationHotkey",
+                new KeyboardShortcut(KeyCode.J),
+                "Cycles Follow, Line, Shield Wall, Wedge, Loose and Archers Behind formations while a Hird Horn is carried. Client-side.");
 
             HomesMatter = config.Bind("Economy", "HomesMatter", true,
                 new ConfigDescription(

@@ -71,7 +71,9 @@ the same way; world and raid settings are admin-only and sync from the server.
   banner to assign them.
 - **A war party you can lose**: craft and upgrade a Hird Horn to command from
   2 companions in the Meadows up to 12 in the Ashlands. Use the horn to toggle
-  Follow/Hold, Block+Use to Retreat, or Crouch+Use to focus an enemy. The
+  Follow/Hold, Block+Use to Retreat, Crouch+Use to attack or move, and
+  Block+Crouch+Use to defend aimed ground. By default, J cycles physical
+  formations and K cycles Passive/Defensive/Aggressive combat behaviour. The
   existing hotkeys mirror those orders while a horn is carried — G toggles
   follow/hold, H orders a protected fall-back, Y focus-fires the enemy
   under your crosshair — or E on a member to post

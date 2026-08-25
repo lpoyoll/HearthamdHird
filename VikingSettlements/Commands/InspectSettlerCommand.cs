@@ -39,6 +39,7 @@ namespace VikingSettlements.Commands
             var character = profile.GetComponent<Character>();
             var recruitable = profile.GetComponent<SettlerRecruitable>();
             var directive = profile.GetComponent<SettlerDirectiveState>();
+            var member = profile.GetComponent<Party.PartyMember>();
             var distance = Vector3.Distance(player.transform.position, profile.transform.position);
             var name = character != null ? character.m_name : profile.gameObject.name;
             var state = recruitable != null ? recruitable.State.ToString() : "Unknown";
@@ -58,6 +59,11 @@ namespace VikingSettlements.Commands
                 ? $"Directive: {directive.Kind} r{directive.Revision}, work '{directive.WorkId}', " +
                   $"target {directive.Target}"
                 : "Directive: unavailable");
+            if (member != null && member.IsActiveMember)
+            {
+                Console.instance.Print(
+                    $"Hird: {member.Stance}, {member.CombatStance}, {member.Formation}");
+            }
         }
     }
 }

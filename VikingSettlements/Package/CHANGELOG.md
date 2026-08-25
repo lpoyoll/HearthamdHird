@@ -10,6 +10,12 @@
   are retained safely, but cannot add another member until capacity catches up.
 - Added a new `Hird.MaximumFollowers` server safety ceiling so legacy
   `Party.MaxPartySize` values cannot suppress the progression ladder.
+- Added aimed Move and Defend orders. Crouch+Use attacks a targeted enemy or
+  moves to aimed terrain; Block+Crouch+Use defends the aimed point.
+- Added persistent Passive, Defensive and Aggressive combat stances (K), plus
+  Follow, Line, Shield Wall, Wedge, Loose and Archers Behind formations (J).
+  Formation members follow real moving slots and keep their offsets on aimed
+  movement orders.
 
 ### 1.13.0
 

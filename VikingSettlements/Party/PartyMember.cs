@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using HearthAndHird.AI;
+using HearthAndHird.Network;
 using HearthAndHird.NPC;
 using UnityEngine;
 using VikingSettlements.Npcs;
@@ -78,6 +79,14 @@ namespace VikingSettlements.Party
             ? (PartyStance)_nview.GetZDO().GetInt(PartySystem.StanceKey)
             : PartyStance.Follow;
 
+        internal HirdCombatStance CombatStance => _nview != null && _nview.IsValid()
+            ? (HirdCombatStance)_nview.GetZDO().GetInt(HearthZdoKeys.HirdCombatStance)
+            : HirdCombatStance.Defensive;
+
+        internal HirdFormation Formation => _nview != null && _nview.IsValid()
+            ? (HirdFormation)_nview.GetZDO().GetInt(HearthZdoKeys.HirdFormation)
+            : HirdFormation.Follow;
+
         internal ZDOID Id => _nview != null && _nview.IsValid()
             ? _nview.GetZDO().m_uid
             : ZDOID.None;
@@ -91,6 +100,23 @@ namespace VikingSettlements.Party
         internal bool IsDead => _character == null || _character.IsDead();
 
         internal float HealthFraction => _character != null ? _character.GetHealthPercentage() : 1f;
+
+        internal bool UsesRangedWeapon
+        {
+            get
+            {
+                var equipment = GetComponent<SettlerEquipment>();
+                var spec = equipment != null ? equipment.SlotSpec(0) : "";
+                if (string.IsNullOrEmpty(spec) || ObjectDB.instance == null)
+                {
+                    return false;
+                }
+                var prefab = ObjectDB.instance.GetItemPrefab(spec.Split(':')[0]);
+                var drop = prefab != null ? prefab.GetComponent<ItemDrop>() : null;
+                return drop != null
+                    && drop.m_itemData.m_shared.m_itemType == ItemDrop.ItemData.ItemType.Bow;
+            }
+        }
 
         internal static PartyMember FindById(ZDOID id)
         {
@@ -116,9 +142,16 @@ namespace VikingSettlements.Party
                 return;
             }
 
-            // A falling-back member must not pick fights; clearing the target
-            // every frame beats MonsterAI re-acquiring one between ticks.
-            if (Stance == PartyStance.Fallback && _ai != null && _ai.m_targetCreature != null)
+            // Retreat and passive behavior outrank autonomous MonsterAI target
+            // acquisition. An explicit focus-fire directive may temporarily
+            // override Passive until that target is gone.
+            var explicitAttack = _directives != null
+                && _directives.Kind == SettlerDirectiveKind.Attack
+                && _ai != null && _ai.m_targetCreature != null
+                && !_ai.m_targetCreature.IsDead();
+            if (_ai != null && _ai.m_targetCreature != null
+                && (Stance == PartyStance.Fallback
+                    || (CombatStance == HirdCombatStance.Passive && !explicitAttack)))
             {
                 _ai.m_targetCreature = null;
             }
@@ -131,6 +164,7 @@ namespace VikingSettlements.Party
 
             UpdateOwnerNearby();
             ApplyStanceAI();
+            ApplyCombatAI();
             Regen();
             AutoFallback();
         }
@@ -166,6 +200,41 @@ namespace VikingSettlements.Party
             {
                 _ai.SetFollowTarget(null);
                 _ai.SetPatrolPoint();
+            }
+        }
+
+        private void ApplyCombatAI()
+        {
+            if (_ai == null)
+            {
+                return;
+            }
+
+            if (_directives != null && _directives.Kind == SettlerDirectiveKind.Attack
+                && (_ai.m_targetCreature == null || _ai.m_targetCreature.IsDead()))
+            {
+                SetStance(Stance, FindOwnerPlayer());
+            }
+            if (Stance == PartyStance.Fallback || CombatStance == HirdCombatStance.Passive)
+            {
+                if (_ai.m_targetCreature == null)
+                {
+                    _ai.SetAlerted(false);
+                }
+                return;
+            }
+            if (CombatStance != HirdCombatStance.Aggressive
+                || (_ai.m_targetCreature != null && !_ai.m_targetCreature.IsDead()))
+            {
+                return;
+            }
+
+            var owner = FindOwnerPlayer();
+            var target = PartySystem.FindNearestEnemy(owner, transform.position, 35f);
+            if (target != null)
+            {
+                _ai.m_targetCreature = target;
+                _ai.Alert();
             }
         }
 
@@ -265,6 +334,72 @@ namespace VikingSettlements.Party
             }
         }
 
+        internal void SetCombatStance(HirdCombatStance stance)
+        {
+            if (_nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            if (CombatStance == stance)
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            _nview.GetZDO().Set(HearthZdoKeys.HirdCombatStance, (int)stance);
+            if (stance == HirdCombatStance.Passive && _ai != null)
+            {
+                _ai.m_targetCreature = null;
+                _ai.SetAlerted(false);
+            }
+        }
+
+        internal void SetFormation(HirdFormation formation)
+        {
+            if (_nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            if (Formation == formation)
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            _nview.GetZDO().Set(HearthZdoKeys.HirdFormation, (int)formation);
+        }
+
+        internal void FollowFormationTarget(GameObject target, Player owner)
+        {
+            if (_ai == null || Stance != PartyStance.Follow)
+            {
+                return;
+            }
+            var desired = target != null
+                ? target
+                : owner != null ? owner.gameObject : null;
+            if (desired != null && _ai.GetFollowTarget() != desired)
+            {
+                _ai.SetFollowTarget(desired);
+            }
+        }
+
+        /// <summary>Walk to a world position and hold or actively defend it.</summary>
+        internal void MoveTo(Vector3 position, Player owner, bool defend)
+        {
+            SetStance(PartyStance.Hold, owner);
+            _directives?.ApplyLegacy(
+                defend ? SettlerDirectiveKind.Guard : SettlerDirectiveKind.Hold,
+                position,
+                issuerId: owner != null ? owner.GetPlayerID() : RecruiterId);
+            if (_ai != null)
+            {
+                _ai.SetPatrolPoint(position);
+                if (defend)
+                {
+                    _ai.Alert();
+                }
+            }
+        }
+
         /// <summary>Hold at a rally standard instead of in place: walk there, guard there.</summary>
         internal void RallyTo(Vector3 position, Player owner)
         {
@@ -305,6 +440,8 @@ namespace VikingSettlements.Party
             var zdo = _nview.GetZDO();
             zdo.Set(PartySystem.PartyKey, true);
             zdo.Set(PartySystem.StanceKey, (int)PartyStance.Follow);
+            zdo.Set(HearthZdoKeys.HirdCombatStance, (int)PartySystem.CombatStance);
+            zdo.Set(HearthZdoKeys.HirdFormation, (int)PartySystem.Formation);
             _directives?.ApplyLegacy(SettlerDirectiveKind.Follow, Vector3.zero,
                 issuerId: owner != null ? owner.GetPlayerID() : RecruiterId);
             if (_ai != null && owner != null)

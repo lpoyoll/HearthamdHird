@@ -22,12 +22,42 @@ Put a horn on the hotbar or use it from the inventory.
 | --- | --- |
 | Use horn | Toggle Follow / Hold |
 | Block + use horn | Toggle Retreat / Follow |
-| Crouch + use horn | Attack the enemy under the crosshair |
+| Crouch + use horn on an enemy | Focus attack |
+| Crouch + use horn on terrain | Move there and hold |
+| Block + crouch + use horn | Defend the aimed point |
+| J (default) | Cycle formation |
+| K (default) | Cycle combat stance |
 
 The legacy G, H and Y party shortcuts continue to mirror these orders while a
 horn is carried. Orders update the same persistent ZDO directive used by the
 settler AI, so the horn is a control surface rather than a separate follower
 implementation.
+
+## Combat stances
+
+| Stance | Behaviour |
+| --- | --- |
+| Passive | Does not acquire targets; an explicit focus-attack still overrides it |
+| Defensive | Uses normal Valheim threat response |
+| Aggressive | Actively seeks valid enemies within 35 metres |
+
+Stance and formation are stored per player/world and copied into every hird
+member's network state. Portal and boat stowing reapplies them when the NPC is
+spawned again.
+
+## Formations
+
+| Formation | Physical layout |
+| --- | --- |
+| Follow | Vanilla close following |
+| Line | Even line behind the player |
+| Shield Wall | Tight line in front of the player |
+| Wedge | Point-forward triangular advance |
+| Loose | Wide grid with extra spacing against area attacks |
+| Archers Behind | Bow-equipped settlers behind the melee line |
+
+Formation positions are real moving targets followed by MonsterAI. Move and
+Defend orders apply the selected offsets around the aimed destination as well.
 
 An existing party above the current horn cap is retained. No member is deleted,
 dismissed or left behind; the player simply cannot recruit another travelling

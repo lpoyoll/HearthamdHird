@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using Jotunn.Managers;
 using HearthAndHird.Hird;
+using HearthAndHird.Network;
 using HearthAndHird.NPC;
 using UnityEngine;
 using VikingSettlements.Npcs;
@@ -13,6 +14,23 @@ namespace VikingSettlements.Party
         Follow = 0,
         Hold = 1,
         Fallback = 2,
+    }
+
+    internal enum HirdCombatStance
+    {
+        Defensive = 0,
+        Aggressive = 1,
+        Passive = 2,
+    }
+
+    internal enum HirdFormation
+    {
+        Follow = 0,
+        Line = 1,
+        ShieldWall = 2,
+        Wedge = 3,
+        Loose = 4,
+        ArchersBehind = 5,
     }
 
     /// <summary>
@@ -55,8 +73,16 @@ namespace VikingSettlements.Party
         }
 
         private static readonly List<Entry> _entries = new List<Entry>();
+        private static readonly Dictionary<ZDOID, GameObject> _formationAnchors =
+            new Dictionary<ZDOID, GameObject>();
         private static long _loadedFor;
         private static float _nextTick;
+        private static float _nextFormationTick;
+        private static HirdCombatStance _combatStance = HirdCombatStance.Defensive;
+        private static HirdFormation _formation = HirdFormation.Follow;
+
+        internal static HirdCombatStance CombatStance => _combatStance;
+        internal static HirdFormation Formation => _formation;
 
         public static void OnUpdate()
         {
@@ -64,6 +90,7 @@ namespace VikingSettlements.Party
             if (player == null || ZNet.instance == null)
             {
                 _loadedFor = 0L;
+                ClearFormationAnchors();
                 return;
             }
             if (_loadedFor != player.GetPlayerID())
@@ -73,6 +100,14 @@ namespace VikingSettlements.Party
             }
 
             HandleHotkeys(player);
+            // Formation anchors inherit the player's transform every frame.
+            // Reconcile membership and ZDO state at a lower frequency to
+            // avoid per-frame list/set allocation as the hird grows.
+            if (Time.time >= _nextFormationTick)
+            {
+                _nextFormationTick = Time.time + 0.2f;
+                UpdateFormationAnchors(player);
+            }
 
             if (Time.time < _nextTick)
             {
@@ -133,6 +168,7 @@ namespace VikingSettlements.Party
                 return;
             }
             _entries.Remove(entry);
+            RemoveFormationAnchor(id);
             if (Player.m_localPlayer != null)
             {
                 Save(Player.m_localPlayer);
@@ -186,6 +222,14 @@ namespace VikingSettlements.Party
             if (ModConfig.PartyFocusKey.Value.IsDown())
             {
                 FocusFire(player);
+            }
+            if (ModConfig.PartyCombatStanceKey.Value.IsDown())
+            {
+                CycleCombatStance(player);
+            }
+            if (ModConfig.PartyFormationKey.Value.IsDown())
+            {
+                CycleFormation(player);
             }
         }
 
@@ -262,6 +306,57 @@ namespace VikingSettlements.Party
                 return character;
             }
             return null;
+        }
+
+        internal static Character FindNearestEnemy(Player owner, Vector3 origin, float range)
+        {
+            if (owner == null)
+            {
+                return null;
+            }
+            Character nearest = null;
+            var nearestDistance = range;
+            foreach (var character in Character.GetAllCharacters())
+            {
+                if (character == null || character == owner || character.IsDead()
+                    || character.IsPlayer() || character.IsTamed()
+                    || character.GetComponent<SettlerRecruitable>() != null
+                    || !BaseAI.IsEnemy(owner, character))
+                {
+                    continue;
+                }
+                var distance = Vector3.Distance(origin, character.transform.position);
+                if (distance < nearestDistance)
+                {
+                    nearest = character;
+                    nearestDistance = distance;
+                }
+            }
+            return nearest;
+        }
+
+        private static bool TryFindOrderPoint(Player player, out Vector3 point)
+        {
+            point = Vector3.zero;
+            var camera = GameCamera.instance;
+            if (camera == null)
+            {
+                return false;
+            }
+            var hits = Physics.RaycastAll(
+                camera.transform.position, camera.transform.forward, 80f);
+            System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (var hit in hits)
+            {
+                if (hit.collider == null || hit.collider.isTrigger
+                    || hit.collider.GetComponentInParent<Character>() != null)
+                {
+                    continue;
+                }
+                point = hit.point;
+                return true;
+            }
+            return false;
         }
 
         // ---- the rally standard -------------------------------------------
@@ -358,10 +453,63 @@ namespace VikingSettlements.Party
             player.Message(MessageHud.MessageType.Center, Localization.instance.Localize(token));
         }
 
+        private static void CycleCombatStance(Player player)
+        {
+            _combatStance = (HirdCombatStance)(((int)_combatStance + 1) % 3);
+            foreach (var entry in _entries)
+            {
+                var member = entry.Stowed == null ? PartyMember.FindById(entry.Id) : null;
+                member?.SetCombatStance(_combatStance);
+            }
+            SaveHirdSettings(player);
+            player.Message(MessageHud.MessageType.Center,
+                Localization.instance.Localize(
+                    $"$hnh_combat_stance: {CombatStanceToken(_combatStance)}"));
+        }
+
+        private static void CycleFormation(Player player)
+        {
+            _formation = (HirdFormation)(((int)_formation + 1) % 6);
+            foreach (var entry in _entries)
+            {
+                var member = entry.Stowed == null ? PartyMember.FindById(entry.Id) : null;
+                member?.SetFormation(_formation);
+            }
+            ClearFormationAnchors();
+            SaveHirdSettings(player);
+            player.Message(MessageHud.MessageType.Center,
+                Localization.instance.Localize(
+                    $"$hnh_formation: {FormationToken(_formation)}"));
+        }
+
+        internal static string CombatStanceToken(HirdCombatStance stance)
+        {
+            switch (stance)
+            {
+                case HirdCombatStance.Passive: return "$hnh_stance_passive";
+                case HirdCombatStance.Aggressive: return "$hnh_stance_aggressive";
+                default: return "$hnh_stance_defensive";
+            }
+        }
+
+        internal static string FormationToken(HirdFormation formation)
+        {
+            switch (formation)
+            {
+                case HirdFormation.Line: return "$hnh_formation_line";
+                case HirdFormation.ShieldWall: return "$hnh_formation_shieldwall";
+                case HirdFormation.Wedge: return "$hnh_formation_wedge";
+                case HirdFormation.Loose: return "$hnh_formation_loose";
+                case HirdFormation.ArchersBehind: return "$hnh_formation_archers";
+                default: return "$hnh_formation_follow";
+            }
+        }
+
         /// <summary>
         /// Primary horn interaction. A normal use toggles hold/follow; using
-        /// while blocking toggles emergency retreat/follow; crouch-use orders
-        /// an attack on the enemy under the crosshair.
+        /// while blocking toggles emergency retreat/follow; crouch-use attacks
+        /// an aimed enemy or moves to the aimed ground; block+crouch-use
+        /// defends the aimed point.
         /// </summary>
         internal static void UseHorn(Player player)
         {
@@ -377,7 +525,14 @@ namespace VikingSettlements.Party
                 return;
             }
 
-            if (ZInput.GetButton("Block"))
+            var blocking = ZInput.GetButton("Block");
+            var crouching = ZInput.GetButton("Crouch");
+            if (blocking && crouching)
+            {
+                OrderToAimedPoint(player, defend: true);
+                return;
+            }
+            if (blocking)
             {
                 var retreat = AnyLiveMemberNotIn(PartyStance.Fallback)
                     ? PartyStance.Fallback
@@ -385,12 +540,12 @@ namespace VikingSettlements.Party
                 CommandAll(player, retreat);
                 return;
             }
-            if (ZInput.GetButton("Crouch"))
+            if (crouching)
             {
-                if (!FocusFire(player))
+                if (!FocusFire(player) && !OrderToAimedPoint(player, defend: false))
                 {
                     player.Message(MessageHud.MessageType.Center,
-                        Localization.instance.Localize("$hnh_horn_no_target"));
+                        Localization.instance.Localize("$hnh_horn_no_order_point"));
                 }
                 return;
             }
@@ -398,6 +553,160 @@ namespace VikingSettlements.Party
                 ? PartyStance.Hold
                 : PartyStance.Follow;
             CommandAll(player, stance);
+        }
+
+        private static bool OrderToAimedPoint(Player player, bool defend)
+        {
+            if (!TryFindOrderPoint(player, out var point))
+            {
+                if (defend)
+                {
+                    player.Message(MessageHud.MessageType.Center,
+                        Localization.instance.Localize("$hnh_horn_no_order_point"));
+                }
+                return false;
+            }
+
+            var members = LiveMembers();
+            for (var i = 0; i < members.Count; i++)
+            {
+                var offset = FormationOffset(_formation, i, members.Count, members[i]);
+                var worldOffset = player.transform.TransformDirection(offset);
+                members[i].MoveTo(point + worldOffset, player, defend);
+            }
+            if (members.Count == 0)
+            {
+                return false;
+            }
+            player.Message(MessageHud.MessageType.Center,
+                Localization.instance.Localize(defend
+                    ? "$hnh_order_defend"
+                    : "$hnh_order_move"));
+            return true;
+        }
+
+        private static List<PartyMember> LiveMembers()
+        {
+            var members = new List<PartyMember>();
+            foreach (var entry in _entries)
+            {
+                if (entry.Stowed != null)
+                {
+                    continue;
+                }
+                var member = PartyMember.FindById(entry.Id);
+                if (member != null && !member.IsDead)
+                {
+                    members.Add(member);
+                }
+            }
+            return members;
+        }
+
+        private static void UpdateFormationAnchors(Player player)
+        {
+            var members = LiveMembers();
+            var active = new HashSet<ZDOID>();
+            for (var i = 0; i < members.Count; i++)
+            {
+                var member = members[i];
+                member.SetCombatStance(_combatStance);
+                member.SetFormation(_formation);
+                if (_formation == HirdFormation.Follow || member.Stance != PartyStance.Follow)
+                {
+                    member.FollowFormationTarget(null, player);
+                    RemoveFormationAnchor(member.Id);
+                    continue;
+                }
+
+                active.Add(member.Id);
+                if (!_formationAnchors.TryGetValue(member.Id, out var anchor)
+                    || anchor == null)
+                {
+                    anchor = new GameObject($"HnH_Formation_{member.Id}");
+                    anchor.hideFlags = HideFlags.HideAndDontSave;
+                    anchor.transform.SetParent(player.transform, false);
+                    _formationAnchors[member.Id] = anchor;
+                }
+                anchor.transform.localPosition = FormationOffset(
+                    _formation, i, members.Count, member);
+                member.FollowFormationTarget(anchor, player);
+            }
+
+            var stale = new List<ZDOID>();
+            foreach (var pair in _formationAnchors)
+            {
+                if (!active.Contains(pair.Key))
+                {
+                    stale.Add(pair.Key);
+                }
+            }
+            foreach (var id in stale)
+            {
+                RemoveFormationAnchor(id);
+            }
+        }
+
+        private static Vector3 FormationOffset(
+            HirdFormation formation,
+            int index,
+            int count,
+            PartyMember member)
+        {
+            var centered = index - (count - 1) * 0.5f;
+            switch (formation)
+            {
+                case HirdFormation.Line:
+                    return new Vector3(centered * 1.8f, 0f, -2.5f);
+                case HirdFormation.ShieldWall:
+                    return new Vector3(centered * 1.35f, 0f, 2.2f);
+                case HirdFormation.Wedge:
+                    if (index == 0)
+                    {
+                        return new Vector3(0f, 0f, 2.5f);
+                    }
+                    var row = (index + 1) / 2;
+                    var side = index % 2 == 1 ? -1f : 1f;
+                    return new Vector3(side * row * 1.6f, 0f, 2.5f - row * 1.5f);
+                case HirdFormation.Loose:
+                    var columns = Mathf.Max(2, Mathf.CeilToInt(Mathf.Sqrt(count)));
+                    var column = index % columns;
+                    var looseRow = index / columns;
+                    return new Vector3(
+                        (column - (columns - 1) * 0.5f) * 3.2f,
+                        0f,
+                        -2.5f - looseRow * 3.2f);
+                case HirdFormation.ArchersBehind:
+                    return new Vector3(centered * 1.7f, 0f,
+                        member != null && member.UsesRangedWeapon ? -5f : 1.8f);
+                default:
+                    return Vector3.zero;
+            }
+        }
+
+        private static void RemoveFormationAnchor(ZDOID id)
+        {
+            if (!_formationAnchors.TryGetValue(id, out var anchor))
+            {
+                return;
+            }
+            if (anchor != null)
+            {
+                Object.Destroy(anchor);
+            }
+            _formationAnchors.Remove(id);
+        }
+
+        private static void ClearFormationAnchors()
+        {
+            foreach (var anchor in _formationAnchors.Values)
+            {
+                if (anchor != null)
+                {
+                    Object.Destroy(anchor);
+                }
+            }
+            _formationAnchors.Clear();
         }
 
         // ---- per-tick member upkeep ---------------------------------------
@@ -659,6 +968,8 @@ namespace VikingSettlements.Party
             zdo.Set(SettlerRecruitable.OwnerKey, player.GetPlayerID());
             zdo.Set(PartyKey, true);
             zdo.Set(StanceKey, (int)PartyStance.Follow);
+            zdo.Set(HearthZdoKeys.HirdCombatStance, (int)_combatStance);
+            zdo.Set(HearthZdoKeys.HirdFormation, (int)_formation);
             zdo.Set(SettlerVeterancy.XpKey, xp);
             if (!string.IsNullOrEmpty(name))
             {
@@ -719,7 +1030,9 @@ namespace VikingSettlements.Party
                 lines.Add($"vs_party: no companions - {hornName}, capacity {capacity}");
                 return lines;
             }
-            lines.Add($"vs_party: {_entries.Count}/{CurrentCapacity(player)} hird slots in use");
+            lines.Add($"vs_party: {_entries.Count}/{CurrentCapacity(player)} hird slots; "
+                + $"{Localization.instance.Localize(CombatStanceToken(_combatStance))}; "
+                + Localization.instance.Localize(FormationToken(_formation)));
             foreach (var entry in _entries)
             {
                 if (entry.Stowed != null)
@@ -787,6 +1100,10 @@ namespace VikingSettlements.Party
             ? $"vs_party_{ZNet.instance.GetWorldUID().ToString(CultureInfo.InvariantCulture)}"
             : null;
 
+        private static string HirdSettingsKey => ZNet.instance != null
+            ? $"hnh_hird_settings_{ZNet.instance.GetWorldUID().ToString(CultureInfo.InvariantCulture)}"
+            : null;
+
         private static Entry FindEntry(ZDOID id)
         {
             foreach (var entry in _entries)
@@ -834,6 +1151,8 @@ namespace VikingSettlements.Party
         private static void Load(Player player)
         {
             _entries.Clear();
+            ClearFormationAnchors();
+            LoadHirdSettings(player);
             var key = CustomDataKey;
             if (key == null || player.m_customData == null
                 || !player.m_customData.TryGetValue(key, out var data)
@@ -863,6 +1182,45 @@ namespace VikingSettlements.Party
                 {
                     _entries.Add(new Entry { Stowed = part, LastName = fields[2] });
                 }
+            }
+        }
+
+        private static void SaveHirdSettings(Player player)
+        {
+            var key = HirdSettingsKey;
+            if (key == null || player == null || player.m_customData == null)
+            {
+                return;
+            }
+            player.m_customData[key] = string.Join("|", "H1",
+                ((int)_combatStance).ToString(CultureInfo.InvariantCulture),
+                ((int)_formation).ToString(CultureInfo.InvariantCulture));
+        }
+
+        private static void LoadHirdSettings(Player player)
+        {
+            _combatStance = HirdCombatStance.Defensive;
+            _formation = HirdFormation.Follow;
+            var key = HirdSettingsKey;
+            if (key == null || player == null || player.m_customData == null
+                || !player.m_customData.TryGetValue(key, out var data))
+            {
+                return;
+            }
+            var fields = data.Split('|');
+            if (fields.Length < 3 || fields[0] != "H1")
+            {
+                return;
+            }
+            if (int.TryParse(fields[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out var combat)
+                && combat >= 0 && combat <= (int)HirdCombatStance.Passive)
+            {
+                _combatStance = (HirdCombatStance)combat;
+            }
+            if (int.TryParse(fields[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out var formation)
+                && formation >= 0 && formation <= (int)HirdFormation.ArchersBehind)
+            {
+                _formation = (HirdFormation)formation;
             }
         }
     }
