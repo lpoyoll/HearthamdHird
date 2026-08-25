@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using Jotunn.Managers;
+using HearthAndHird.Hird;
 using HearthAndHird.NPC;
 using UnityEngine;
 using VikingSettlements.Npcs;
@@ -15,7 +16,7 @@ namespace VikingSettlements.Party
     }
 
     /// <summary>
-    /// The local player's war party: up to MaxPartySize recruited villagers
+    /// The local player's war party: a horn-capped group of recruited villagers
     /// that fight at the player's side and survive every traversal system.
     ///
     /// The registry lives in Player.m_customData (keyed per world), so it
@@ -86,7 +87,20 @@ namespace VikingSettlements.Party
 
         public static bool HasRoom()
         {
-            return _entries.Count < ModConfig.MaxPartySize.Value;
+            return _entries.Count < CurrentCapacity(Player.m_localPlayer);
+        }
+
+        internal static int CurrentCapacity(Player player)
+        {
+            return HirdHornItems.BestCapacity(player);
+        }
+
+        internal static string RecruitmentFailure(Player player)
+        {
+            var capacity = CurrentCapacity(player);
+            return capacity <= 0
+                ? "$hnh_horn_required"
+                : $"$hnh_hird_full ({_entries.Count}/{capacity})";
         }
 
         public static void AddMember(Player player, PartyMember member)
@@ -155,7 +169,7 @@ namespace VikingSettlements.Party
 
         private static void HandleHotkeys(Player player)
         {
-            if (_entries.Count == 0 || UiHasFocus())
+            if (_entries.Count == 0 || UiHasFocus() || CurrentCapacity(player) <= 0)
             {
                 return;
             }
@@ -182,12 +196,12 @@ namespace VikingSettlements.Party
         /// command outranks the kill order) onto the enemy under the
         /// crosshair.
         /// </summary>
-        private static void FocusFire(Player player)
+        private static bool FocusFire(Player player)
         {
             var target = FindFocusTarget(player);
             if (target == null)
             {
-                return;
+                return false;
             }
             var ordered = 0;
             foreach (var entry in _entries)
@@ -209,6 +223,7 @@ namespace VikingSettlements.Party
                 player.Message(MessageHud.MessageType.Center,
                     Localization.instance.Localize($"$vs_party_focus {target.m_name}!"));
             }
+            return ordered > 0;
         }
 
         private static Character FindFocusTarget(Player player)
@@ -341,6 +356,48 @@ namespace VikingSettlements.Party
                 default: token = "$vs_party_cmd_follow"; break;
             }
             player.Message(MessageHud.MessageType.Center, Localization.instance.Localize(token));
+        }
+
+        /// <summary>
+        /// Primary horn interaction. A normal use toggles hold/follow; using
+        /// while blocking toggles emergency retreat/follow; crouch-use orders
+        /// an attack on the enemy under the crosshair.
+        /// </summary>
+        internal static void UseHorn(Player player)
+        {
+            if (player == null || player != Player.m_localPlayer)
+            {
+                return;
+            }
+            if (_entries.Count == 0)
+            {
+                var capacity = CurrentCapacity(player);
+                player.Message(MessageHud.MessageType.Center,
+                    Localization.instance.Localize($"$hnh_horn_no_hird ({capacity})"));
+                return;
+            }
+
+            if (ZInput.GetButton("Block"))
+            {
+                var retreat = AnyLiveMemberNotIn(PartyStance.Fallback)
+                    ? PartyStance.Fallback
+                    : PartyStance.Follow;
+                CommandAll(player, retreat);
+                return;
+            }
+            if (ZInput.GetButton("Crouch"))
+            {
+                if (!FocusFire(player))
+                {
+                    player.Message(MessageHud.MessageType.Center,
+                        Localization.instance.Localize("$hnh_horn_no_target"));
+                }
+                return;
+            }
+            var stance = AnyLiveMemberNotIn(PartyStance.Hold)
+                ? PartyStance.Hold
+                : PartyStance.Follow;
+            CommandAll(player, stance);
         }
 
         // ---- per-tick member upkeep ---------------------------------------
@@ -654,9 +711,15 @@ namespace VikingSettlements.Party
             var lines = new List<string>();
             if (_entries.Count == 0)
             {
-                lines.Add($"vs_party: no companions - recruit villagers to form a party (up to {ModConfig.MaxPartySize.Value})");
+                var capacity = CurrentCapacity(player);
+                var horn = HirdHornItems.BestHornName(player);
+                var hornName = string.IsNullOrEmpty(horn)
+                    ? "no Hird Horn"
+                    : Localization.instance.Localize(horn);
+                lines.Add($"vs_party: no companions - {hornName}, capacity {capacity}");
                 return lines;
             }
+            lines.Add($"vs_party: {_entries.Count}/{CurrentCapacity(player)} hird slots in use");
             foreach (var entry in _entries)
             {
                 if (entry.Stowed != null)

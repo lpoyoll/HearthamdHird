@@ -40,6 +40,7 @@ namespace VikingSettlements
 
         private void CreatePrefabs()
         {
+            HearthAndHird.Hird.HirdHornItems.CreateAll();
             Npcs.SettlerPrefabs.CreateAll();
             Settlements.SettlementPieces.CreateAll();
             PrefabManager.OnVanillaPrefabsAvailable -= CreatePrefabs;
@@ -141,6 +142,24 @@ namespace VikingSettlements
                 { "vs_party_aboard", "Your party travels with you" },
                 { "vs_party_ashore", "Your party regroups around you" },
                 { "vs_joined_hint", "They fight at your side — settle them at your banner (E) to put them to work" },
+                { "hnh_horn_required", "Craft and carry a Hird Horn before recruiting travelling companions" },
+                { "hnh_hird_full", "Your Hird Horn cannot command any more warriors" },
+                { "hnh_horn_no_hird", "Your hird is empty — horn capacity" },
+                { "hnh_horn_no_target", "No enemy is under your crosshair" },
+                { "hnh_horn_crude", "Crude Hird Horn" },
+                { "hnh_horn_crude_desc", "A rough horn for a young hird. Commands up to 2 followers. Use: follow/hold. Block + use: retreat. Crouch + use: attack target." },
+                { "hnh_horn_bronze", "Bronze-bound Hird Horn" },
+                { "hnh_horn_bronze_desc", "A horn bound in bronze. Commands up to 3 followers. Use: follow/hold. Block + use: retreat. Crouch + use: attack target." },
+                { "hnh_horn_iron", "Iron-bound Hird Horn" },
+                { "hnh_horn_iron_desc", "A hard-wearing iron horn. Commands up to 4 followers. Use: follow/hold. Block + use: retreat. Crouch + use: attack target." },
+                { "hnh_horn_silver", "Silver-bound Hird Horn" },
+                { "hnh_horn_silver_desc", "A clear-voiced silver horn. Commands up to 6 followers. Use: follow/hold. Block + use: retreat. Crouch + use: attack target." },
+                { "hnh_horn_blackmetal", "Blackmetal Hird Horn" },
+                { "hnh_horn_blackmetal_desc", "A war horn fit for the plains. Commands up to 8 followers. Use: follow/hold. Block + use: retreat. Crouch + use: attack target." },
+                { "hnh_horn_eitr", "Eitr-carved Hird Horn" },
+                { "hnh_horn_eitr_desc", "A horn traced with refined eitr. Commands up to 10 followers. Use: follow/hold. Block + use: retreat. Crouch + use: attack target." },
+                { "hnh_horn_flametal", "Flametal Hird Horn" },
+                { "hnh_horn_flametal_desc", "A jarl's horn bound in flametal. Commands up to 12 followers. Use: follow/hold. Block + use: retreat. Crouch + use: attack target." },
                 { "vs_talk_wild", "A free villager" },
                 { "vs_talk_party", "In your party" },
                 { "vs_talk_party_hint", "Settle them at your settlement banner to give them a job" },

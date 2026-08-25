@@ -1,5 +1,16 @@
 # Changelog
 
+### Hearth & Hird 0.2 foundation (development branch)
+
+- Added seven craftable Hird Horn tiers from Meadows through Ashlands. The
+  best horn carried sets a per-player travelling-hird cap from 2 to 12.
+- Using a horn toggles Follow/Hold; Block+Use toggles Retreat; Crouch+Use
+  focus-fires the enemy under the crosshair.
+- Recruitment now requires a horn. Existing parties above their current cap
+  are retained safely, but cannot add another member until capacity catches up.
+- Added a new `Hird.MaximumFollowers` server safety ceiling so legacy
+  `Party.MaxPartySize` values cannot suppress the progression ladder.
+
 ### 1.13.0
 
 - Village bounty boards: wild meadows villages now post work on a board

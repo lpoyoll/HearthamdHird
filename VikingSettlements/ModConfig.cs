@@ -36,7 +36,7 @@ namespace VikingSettlements
         public static ConfigEntry<bool> ReputationEnabled;
         public static ConfigEntry<int> DonationCostCoins;
         public static ConfigEntry<int> DonationReputation;
-        public static ConfigEntry<int> MaxPartySize;
+        public static ConfigEntry<int> HirdMaxFollowers;
         public static ConfigEntry<bool> PartyAutoFallback;
         public static ConfigEntry<float> PartyRegenPerSecond;
         public static ConfigEntry<KeyboardShortcut> PartyStanceKey;
@@ -259,12 +259,11 @@ namespace VikingSettlements
                     new AcceptableValueRange<int>(1, 50),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
-            MaxPartySize = config.Bind("Party", "MaxPartySize", 4,
+            HirdMaxFollowers = config.Bind("Hird", "MaximumFollowers", 12,
                 new ConfigDescription(
-                    "Maximum recruited villagers that can travel with a player at once. " +
-                    "The party is strong because bringing it is a real bet - raising " +
-                    "this dilutes the stakes the feature is built on.",
-                    new AcceptableValueRange<int>(1, 4),
+                    "Server safety ceiling for recruited villagers travelling with one player. " +
+                    "The best Hird Horn in the player's inventory supplies the normal biome-tier cap.",
+                    new AcceptableValueRange<int>(1, 12),
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
             PartyAutoFallback = config.Bind("Party", "AutoFallbackWhenGravelyWounded", true,

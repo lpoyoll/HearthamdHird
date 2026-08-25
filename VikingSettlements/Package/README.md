@@ -1,5 +1,10 @@
 # VikingSettlements
 
+> **Hearth & Hird development branch:** this derivative retains the
+> VikingSettlements plugin identity and save format while its systems are
+> migrated incrementally. Human player-body settlers and the first Hird Horn
+> command layer are now implemented. See `docs/ROADMAP.md` and `docs/HIRD.md`.
+
 ![VikingSettlements — a pixel-art village of moss-roofed cabins at the forest's edge](https://raw.githubusercontent.com/abjumb/VikingSettlements/master/docs/brand/banner-800x296.png)
 
 Vikings have finally learned to build homes of their own. This mod adds
@@ -64,8 +69,10 @@ the same way; world and raid settings are admin-only and sync from the server.
 - **Recruit settlers**: press E on a settler in a wild settlement to recruit
   them for coins. They follow you; bring them home and press E near your
   banner to assign them.
-- **A war party you can lose**: up to 4 recruited villagers fight at your
-  side as a persistent party. Command them with hotkeys — G toggles
+- **A war party you can lose**: craft and upgrade a Hird Horn to command from
+  2 companions in the Meadows up to 12 in the Ashlands. Use the horn to toggle
+  Follow/Hold, Block+Use to Retreat, or Crouch+Use to focus an enemy. The
+  existing hotkeys mirror those orders while a horn is carried — G toggles
   follow/hold, H orders a protected fall-back, Y focus-fires the enemy
   under your crosshair — or E on a member to post
   them somewhere. Plant the cheap **Rally Standard** ahead of a fight and

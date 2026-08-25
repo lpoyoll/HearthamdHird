@@ -296,7 +296,7 @@ namespace VikingSettlements.Npcs
             if (player == Player.m_localPlayer && !Party.PartySystem.HasRoom())
             {
                 player.Message(MessageHud.MessageType.Center,
-                    Localization.instance.Localize("$vs_party_full"));
+                    Localization.instance.Localize(Party.PartySystem.RecruitmentFailure(player)));
                 return true;
             }
 
@@ -437,7 +437,7 @@ namespace VikingSettlements.Npcs
             if (player == Player.m_localPlayer && !Party.PartySystem.HasRoom())
             {
                 player.Message(MessageHud.MessageType.Center,
-                    Localization.instance.Localize("$vs_party_full"));
+                    Localization.instance.Localize(Party.PartySystem.RecruitmentFailure(player)));
                 return true;
             }
             State = SettlerState.Following;
