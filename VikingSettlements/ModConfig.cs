@@ -38,6 +38,7 @@ namespace VikingSettlements
         public static ConfigEntry<int> HirdMaxFollowers;
         public static ConfigEntry<bool> PartyAutoFallback;
         public static ConfigEntry<float> PartyRegenPerSecond;
+        public static ConfigEntry<bool> PartyEmergencyWarp;
         public static ConfigEntry<KeyboardShortcut> PartyStanceKey;
         public static ConfigEntry<KeyboardShortcut> PartyFallbackKey;
         public static ConfigEntry<KeyboardShortcut> PartyFocusKey;
@@ -276,6 +277,14 @@ namespace VikingSettlements
                     "taking damage. Keeps losses a moment-to-moment stake instead of an " +
                     "attrition tax between fights. 0 disables.",
                     new AcceptableValueRange<float>(0f, 20f),
+                    new ConfigurationManagerAttributes { IsAdminOnly = true }));
+
+            PartyEmergencyWarp = config.Bind("Party", "EmergencyWarp", false,
+                new ConfigDescription(
+                    "Recover a following Hird member beside the owner only after they remain " +
+                    "over 120 metres away for ten seconds. Disabled by default so ordinary " +
+                    "travel never visibly teleports followers.",
+                    null,
                     new ConfigurationManagerAttributes { IsAdminOnly = true }));
 
             PartyStanceKey = config.Bind("Party", "StanceHotkey",

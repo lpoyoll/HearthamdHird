@@ -81,6 +81,13 @@ namespace VikingSettlements.Npcs
                 humanoid.m_name = nameToken;
                 humanoid.m_group = "vs_settlement";
                 humanoid.m_boss = false;
+                // Dvergr defaults include crossbows and mage weapons whose
+                // attachment and animation sets do not belong on the Player
+                // rig. Settlers display only recorded Hearth & Hird gear.
+                humanoid.m_defaultItems = new GameObject[0];
+                humanoid.m_randomWeapon = new GameObject[0];
+                humanoid.m_randomArmor = new GameObject[0];
+                humanoid.m_randomShield = new GameObject[0];
                 humanoid.m_faction = ModConfig.SettlersDefendPlayers.Value
                     ? Character.Faction.Players
                     : Character.Faction.Dverger;

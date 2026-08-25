@@ -22,15 +22,28 @@ dedicated servers should leave `Development.EnableTestTools` false.
 
 ## What the panel exercises
 
-- networked wild, assigned and Hird settler spawning;
+- dropdown configuration for unit type, allegiance, count, level, job and kit;
+- a visible summary of exactly what the next Spawn action will create;
+- networked wild, assigned and Hird settler/seer spawning;
 - loaded-unit selection and host ownership diagnostics;
 - Wild, Hird and Hearthstone-assigned state transitions;
 - job cycling through every current job;
 - normal player-inventory equipment UI;
 - bronze, iron, archer and plains development loadouts;
-- star-level changes and teleport recovery;
-- selected Follow, Hold and Retreat commands;
+- NPC levels 1–3 (zero to two Valheim stars) and selected-unit level changes;
+- selected-unit positioning and gear access;
+- selected Follow, Hold and Retreat orders;
 - whole-Hird orders, formation cycling and combat-stance cycling.
+- one-click local-Hird disband and safe cleanup of panel-created units.
+
+The panel marks every unit it creates. **Despawn test units** deletes only those
+marked units, while **Disband all Hird** releases the local player's complete
+warband, including stowed members. Ordinary world settlers are never removed
+by the despawn action.
+
+Hird followers no longer teleport during ordinary travel. The optional
+`Party.EmergencyWarp` recovery is disabled by default; if enabled, it activates
+only after a follower remains more than 120 metres away for ten seconds.
 
 Assigned test units deliberately bypass bed and tier limits so large-population
 tests can be set up quickly. Normal recruitment continues to enforce both.

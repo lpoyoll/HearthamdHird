@@ -43,6 +43,7 @@ namespace VikingSettlements.Npcs
         public const string OwnerKey = "vs_recruiter";
         public const string JobKey = "vs_job";
         public const string HomeKey = "vs_home";
+        public const string TestSpawnedKey = "hnh_test_spawned";
 
         public static readonly List<SettlerRecruitable> Instances = new List<SettlerRecruitable>();
 
@@ -109,6 +110,11 @@ namespace VikingSettlements.Npcs
 
         internal bool IsHungry => _nview != null && _nview.IsValid()
             && _nview.GetZDO().GetBool(SettlerWork.HungryKey);
+
+        internal bool IsTestSpawned => _nview != null && _nview.IsValid()
+            && _nview.GetZDO().GetBool(TestSpawnedKey);
+
+        internal int Level => _character != null ? _character.GetLevel() : 1;
 
         internal bool HasHearthstone => _nview != null && _nview.IsValid()
             && (_nview.GetZDO().GetLong(HearthZdoKeys.SettlerHearthUser) != 0L
@@ -210,6 +216,60 @@ namespace VikingSettlements.Npcs
             _ai?.SetFollowTarget(null);
             _ai?.SetPatrolPoint(settlement.transform.position);
             settlement.UpdateRegister(this);
+            return true;
+        }
+
+        internal void MarkTestSpawned(int level)
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost
+                || _nview == null || !_nview.IsValid())
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            _nview.GetZDO().Set(TestSpawnedKey, true);
+            if (_character != null)
+            {
+                _character.SetLevel(Mathf.Clamp(level, 1, 3));
+                _character.SetHealth(_character.GetMaxHealth());
+            }
+        }
+
+        internal void SetTestLevel(int level)
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost
+                || _character == null)
+            {
+                return;
+            }
+            _nview.ClaimOwnership();
+            _character.SetLevel(Mathf.Clamp(level, 1, 3));
+            _character.SetHealth(_character.GetMaxHealth());
+        }
+
+        internal bool DespawnForTest(Player player)
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost
+                || player == null || !IsTestSpawned || _nview == null || !_nview.IsValid()
+                || (RecruiterId != 0L && RecruiterId != player.GetPlayerID()))
+            {
+                return false;
+            }
+            if (_member != null && _member.IsActiveMember)
+            {
+                Party.PartySystem.RemoveMember(_member.Id);
+                _member.ClearMember();
+            }
+            ClearSettlement();
+            _nview.ClaimOwnership();
+            if (ZNetScene.instance != null)
+            {
+                ZNetScene.instance.Destroy(gameObject);
+            }
+            else
+            {
+                Destroy(gameObject);
+            }
             return true;
         }
 

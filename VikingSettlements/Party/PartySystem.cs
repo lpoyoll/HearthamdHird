@@ -59,7 +59,8 @@ namespace VikingSettlements.Party
         public const float GuardDistance = 60f;
 
         private const float TickInterval = 0.5f;
-        private const float TetherDistance = 45f;
+        private const float EmergencyWarpDistance = 120f;
+        private const float EmergencyWarpDelay = 10f;
         private const float WoundedFraction = 0.5f;
         private const float GravelyWoundedFraction = 0.25f;
 
@@ -70,6 +71,7 @@ namespace VikingSettlements.Party
             public string LastName = "";
             public Vector3 LastPosition;
             public float LastHealthFraction = 1f;
+            public float FarSince = -1f;
         }
 
         private static readonly List<Entry> _entries = new List<Entry>();
@@ -811,7 +813,7 @@ namespace VikingSettlements.Party
                 entry.LastName = member.MemberName;
                 entry.LastPosition = member.transform.position;
                 WarnHealth(player, entry, member);
-                Tether(player, member);
+                Tether(player, entry, member);
             }
         }
 
@@ -833,17 +835,18 @@ namespace VikingSettlements.Party
             }
         }
 
-        // Keeps travelling members inside the active area even when pathing
-        // fails or the player sprints across zone borders: past the tether
-        // they are teleported to the player instead of being left behind.
-        private static void Tether(Player player, PartyMember member)
+        // Optional last-resort recovery. The old 45m half-second tether was
+        // visible during normal pathfinding and could repeatedly warp units.
+        private static void Tether(Player player, Entry entry, PartyMember member)
         {
-            if (member.Stance == PartyStance.Hold)
+            if (!ModConfig.PartyEmergencyWarp.Value || member.Stance == PartyStance.Hold)
             {
+                entry.FarSince = -1f;
                 return;
             }
-            if (Vector3.Distance(player.transform.position, member.transform.position) < TetherDistance)
+            if (Vector3.Distance(player.transform.position, member.transform.position) < EmergencyWarpDistance)
             {
+                entry.FarSince = -1f;
                 return;
             }
             if (!player.IsOnGround() || player.IsSwimming() || player.IsTeleporting()
@@ -851,7 +854,38 @@ namespace VikingSettlements.Party
             {
                 return;
             }
+            if (entry.FarSince < 0f)
+            {
+                entry.FarSince = Time.time;
+                return;
+            }
+            if (Time.time - entry.FarSince < EmergencyWarpDelay)
+            {
+                return;
+            }
+            entry.FarSince = -1f;
             member.WarpTo(SpawnPointAround(player, _entries.IndexOf(FindEntry(member.Id))));
+        }
+
+        internal static int TestDisbandAll(Player player)
+        {
+            if (!global::VikingSettlements.Development.TestAuthority.IsHost || player == null)
+            {
+                return 0;
+            }
+            var members = LiveMembers();
+            var count = _entries.Count;
+            foreach (var member in members)
+            {
+                member.GetComponent<SettlerRecruitable>()
+                    ?.ConfigureForTest(player, SettlerState.Wild);
+            }
+            // Clear any stowed entries too; they have no live object to
+            // unflag and explicit test disband is intentionally final.
+            _entries.Clear();
+            ClearFormationAnchors();
+            Save(player);
+            return count;
         }
 
         // ---- traversal: boats, portals, logout ----------------------------

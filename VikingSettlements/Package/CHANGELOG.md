@@ -1,5 +1,17 @@
 # Changelog
 
+### Hearth & Hird test muster 0.3.1 (development branch)
+
+- Rebuilt the F7 test panel around dropdowns for unit type, allegiance, count,
+  NPC level, job and equipment, with a clear preview before spawning.
+- Added safe test-unit tagging, one-click despawn and full local-Hird disband.
+- Removed inherited Dvergr weapons so crossbows no longer float on the Player
+  rig; empty weapon slots now leave settlers genuinely unarmed.
+- Disabled routine follower teleporting. Optional emergency recovery now waits
+  until a follower remains over 120m away for ten seconds and is off by default.
+- Suppressed Dvergr random wandering while in the Hird and added formation-slot
+  arrival hysteresis to stop constant circling and target reacquisition.
+
 ### Hearth & Hird 0.3 foundation (development branch)
 
 - Replaced the old three-tier, radius-only banner behaviour with the

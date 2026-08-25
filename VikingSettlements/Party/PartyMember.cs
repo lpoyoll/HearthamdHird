@@ -31,6 +31,9 @@ namespace VikingSettlements.Party
         private float _lastDamageTime = -1000f;
         private float _nextTick;
         private bool _autoFellBack;
+        private bool _formationArrived;
+        private float _baseRandomMoveInterval;
+        private float _baseRandomMoveRange;
 
         /// <summary>
         /// Whether the recruiter is close enough for this member's fate to be
@@ -47,6 +50,11 @@ namespace VikingSettlements.Party
             _ai = GetComponent<MonsterAI>();
             _settler = GetComponent<SettlerRecruitable>();
             _directives = GetComponent<SettlerDirectiveState>();
+            if (_ai != null)
+            {
+                _baseRandomMoveInterval = _ai.m_randomMoveInterval;
+                _baseRandomMoveRange = _ai.m_randomMoveRange;
+            }
             if (_character != null)
             {
                 _character.m_onDamaged += OnDamaged;
@@ -137,6 +145,7 @@ namespace VikingSettlements.Party
             {
                 return;
             }
+            SyncMovementMode();
             if (!IsActiveMember)
             {
                 return;
@@ -167,6 +176,18 @@ namespace VikingSettlements.Party
             ApplyCombatAI();
             Regen();
             AutoFallback();
+        }
+
+        private void SyncMovementMode()
+        {
+            if (_ai == null)
+            {
+                return;
+            }
+            // Dvergr wandering suits a village, but causes a following Hird
+            // to scatter and continually reacquire paths around its owner.
+            _ai.m_randomMoveInterval = IsActiveMember ? 0f : _baseRandomMoveInterval;
+            _ai.m_randomMoveRange = IsActiveMember ? 0f : _baseRandomMoveRange;
         }
 
         private void UpdateOwnerNearby()
@@ -373,9 +394,29 @@ namespace VikingSettlements.Party
             {
                 return;
             }
-            var desired = target != null
-                ? target
-                : owner != null ? owner.gameObject : null;
+            if (target != null)
+            {
+                var distance = Vector3.Distance(transform.position, target.transform.position);
+                if (distance <= 1.6f)
+                {
+                    _formationArrived = true;
+                    if (_ai.GetFollowTarget() == target)
+                    {
+                        _ai.SetFollowTarget(null);
+                    }
+                    return;
+                }
+                if (_formationArrived && distance < 2.8f)
+                {
+                    return;
+                }
+                _formationArrived = false;
+            }
+            else
+            {
+                _formationArrived = false;
+            }
+            var desired = target != null ? target : owner != null ? owner.gameObject : null;
             if (desired != null && _ai.GetFollowTarget() != desired)
             {
                 _ai.SetFollowTarget(desired);

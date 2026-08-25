@@ -34,6 +34,9 @@ namespace VikingSettlements.Npcs
             {
                 _character.m_onDeath += OnDeath;
             }
+            // Force the initial owner tick through Apply even when the saved
+            // slot is empty, stripping inherited weapons from existing saves.
+            _appliedSpec[0] = "\u0001";
         }
 
         private void OnDestroy()
@@ -264,8 +267,9 @@ namespace VikingSettlements.Npcs
             }
             else if (slot == 0 && _applied[0] == null)
             {
-                // Weapon taken away: rearm with the default kit.
-                _humanoid.GiveDefaultItems();
+                // Empty means unarmed. Never restore the cloned Dvergr's
+                // crossbow or mage defaults onto the Player body.
+                RemoveOtherWeapons();
             }
             _appliedSpec[slot] = spec;
         }

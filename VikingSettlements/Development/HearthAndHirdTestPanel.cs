@@ -10,16 +10,32 @@ using VikingSettlements.Settlements;
 
 namespace VikingSettlements.Development
 {
-    /// <summary>
-    /// Host-only integration test surface. It deliberately drives the same
-    /// persisted settler, equipment and Hird components as normal gameplay.
-    /// </summary>
+    /// <summary>Host-only spawn configurator and live-unit test controls.</summary>
     internal static class HearthAndHirdTestPanel
     {
-        private const float PanelWidth = 780f;
-        private const float PanelHeight = 710f;
+        private const float PanelWidth = 920f;
+        private const float PanelHeight = 820f;
+
+        private static readonly string[] UnitNames = { "Settler", "Seer" };
+        private static readonly string[] StateNames = { "Wild", "Hird follower", "Assigned settler" };
+        private static readonly SettlerState[] States =
+            { SettlerState.Wild, SettlerState.Following, SettlerState.Assigned };
+        private static readonly int[] Counts = { 1, 2, 3, 5, 10, 20 };
+        private static readonly int[] Levels = { 1, 2, 3 };
+        private static readonly string[] LevelNames =
+            { "Level 1 (0 stars)", "Level 2 (1 star)", "Level 3 (2 stars)" };
+        private static readonly string[] KitNames =
+            { "Unarmed", "Bronze sword", "Iron sword", "Archer", "Plains warrior" };
+
         private static GameObject _panel;
         private static SettlerRecruitable _selected;
+        private static Text _previewText;
+        private static int _unitIndex;
+        private static int _stateIndex = 1;
+        private static int _countIndex;
+        private static int _levelIndex;
+        private static int _jobIndex;
+        private static int _kitIndex = 1;
 
         internal static void OnUpdate()
         {
@@ -40,14 +56,7 @@ namespace VikingSettlements.Development
 
         internal static void Toggle()
         {
-            if (_panel != null)
-            {
-                Close();
-            }
-            else
-            {
-                Open();
-            }
+            if (_panel != null) Close(); else Open();
         }
 
         internal static void CloseForCommand()
@@ -72,6 +81,7 @@ namespace VikingSettlements.Development
             {
                 UnityEngine.Object.Destroy(_panel);
                 _panel = null;
+                _previewText = null;
                 GUIManager.BlockInput(false);
             }
         }
@@ -90,65 +100,81 @@ namespace VikingSettlements.Development
                 Vector2.zero, PanelWidth, PanelHeight);
             _panel.AddComponent<PanelBehaviour>();
 
-            Label("HEARTH & HIRD — HOST TEST PANEL", 0f, -32f, 26,
-                GUIManager.Instance.ValheimOrange, 700f, TextAnchor.MiddleCenter, true);
-            Label(StatusText(), 0f, -86f, 16, Color.white, 700f,
-                TextAnchor.UpperLeft, false, 82f);
+            Label("HEARTH & HIRD — TEST MUSTER", 0f, -28f, 27,
+                GUIManager.Instance.ValheimOrange, 840f, TextAnchor.MiddleCenter, true);
+            Label(WorldStatus(), -405f, -65f, 15, Color.white, 810f,
+                TextAnchor.UpperLeft, false, 48f);
 
-            Section("Spawn networked unit", -174f);
-            Button("Wild", -270f, -207f, () => Spawn(SettlerState.Wild));
-            Button("Hird follower", -90f, -207f, () => Spawn(SettlerState.Following));
-            Button("Assigned", 90f, -207f, () => Spawn(SettlerState.Assigned));
-            Button("Spawn 5 Hird", 270f, -207f, () =>
-            {
-                for (var i = 0; i < 5; i++) Spawn(SettlerState.Following, false, i);
-                Rebuild();
-            });
+            Section("Configure the next spawn", -120f);
+            FieldLabel("UNIT", -280f, -153f);
+            FieldLabel("ALLEGIANCE", 0f, -153f);
+            FieldLabel("COUNT", 280f, -153f);
+            DropDown(UnitNames, _unitIndex, -280f, -184f, value => _unitIndex = value);
+            DropDown(StateNames, _stateIndex, 0f, -184f, value => _stateIndex = value);
+            DropDown(Counts.Select(value => value.ToString()).ToArray(), _countIndex,
+                280f, -184f, value => _countIndex = value);
 
-            Section("Select and position", -250f);
-            Button("Previous", -270f, -283f, () => SelectRelative(-1));
-            Button("Nearest", -90f, -283f, SelectNearest);
-            Button("Next", 90f, -283f, () => SelectRelative(1));
-            Button("Teleport here", 270f, -283f, TeleportSelected);
+            FieldLabel("LEVEL", -280f, -234f);
+            FieldLabel("JOB", 0f, -234f);
+            FieldLabel("EQUIPMENT", 280f, -234f);
+            DropDown(LevelNames, _levelIndex, -280f, -265f, value => _levelIndex = value);
+            DropDown(JobNames(), _jobIndex, 0f, -265f, value => _jobIndex = value);
+            DropDown(KitNames, _kitIndex, 280f, -265f, value => _kitIndex = value);
 
-            Section("Selected unit state", -326f);
-            Button("Make wild", -270f, -359f, () => SetSelectedState(SettlerState.Wild));
-            Button("Join Hird", -90f, -359f, () => SetSelectedState(SettlerState.Following));
-            Button("Assign", 90f, -359f, () => SetSelectedState(SettlerState.Assigned));
-            Button("Open gear", 270f, -359f, OpenGear);
+            var preview = Label(SpawnPreview(), -405f, -314f, 17,
+                new Color(0.78f, 0.95f, 0.72f), 610f, TextAnchor.MiddleLeft, true, 58f);
+            _previewText = preview.GetComponent<Text>();
+            Button("SPAWN", 315f, -314f, SpawnConfigured, 180f, 48f);
 
-            Section("Job and development loadout", -402f);
-            Button("Previous job", -270f, -435f, () => CycleJob(-1));
-            Button("Next job", -90f, -435f, () => CycleJob(1));
-            Button("Bronze kit", 90f, -435f, () => ApplyKit("bronze"));
-            Button("Iron kit", 270f, -435f, () => ApplyKit("iron"));
-            Button("Archer kit", -270f, -473f, () => ApplyKit("archer"));
-            Button("Plains kit", -90f, -473f, () => ApplyKit("plains"));
-            Button("Clear gear", 90f, -473f, () => ApplyKit("clear"));
-            Button("+1 star", 270f, -473f, AddStar);
+            Section("Selected unit", -385f);
+            Label(SelectedStatus(), -405f, -418f, 15, Color.white, 810f,
+                TextAnchor.UpperLeft, false, 46f);
+            Button("Previous", -320f, -472f, () => SelectRelative(-1), 140f);
+            Button("Nearest", -160f, -472f, SelectNearest, 140f);
+            Button("Next", 0f, -472f, () => SelectRelative(1), 140f);
+            Button("Teleport here", 160f, -472f, TeleportSelected, 140f);
+            Button("Open gear", 320f, -472f, OpenGear, 140f);
 
-            Section("Selected Hird order", -516f);
-            Button("Follow", -180f, -549f, () => OrderSelected(PartyStance.Follow));
-            Button("Hold", 0f, -549f, () => OrderSelected(PartyStance.Hold));
-            Button("Retreat", 180f, -549f, () => OrderSelected(PartyStance.Fallback));
+            Button("Make wild", -320f, -517f, () => SetSelectedState(SettlerState.Wild), 140f);
+            Button("Join Hird", -160f, -517f, () => SetSelectedState(SettlerState.Following), 140f);
+            Button("Assign", 0f, -517f, () => SetSelectedState(SettlerState.Assigned), 140f);
+            Button("Previous job", 160f, -517f, () => CycleJob(-1), 140f);
+            Button("Next job", 320f, -517f, () => CycleJob(1), 140f);
+            Button("Selected follow", -320f, -557f, () => OrderSelected(PartyStance.Follow), 140f);
+            Button("Selected hold", -160f, -557f, () => OrderSelected(PartyStance.Hold), 140f);
+            Button("Selected retreat", 0f, -557f, () => OrderSelected(PartyStance.Fallback), 140f);
+            Button("Level down", 180f, -557f, () => ChangeLevel(-1), 140f);
+            Button("Level up", 340f, -557f, () => ChangeLevel(1), 140f);
 
-            Section("Whole local Hird", -592f);
-            Button("All follow", -270f, -625f, () => OrderAll(PartyStance.Follow));
-            Button("All hold", -90f, -625f, () => OrderAll(PartyStance.Hold));
-            Button("All retreat", 90f, -625f, () => OrderAll(PartyStance.Fallback));
-            Button("Formation", 270f, -625f, CycleFormation);
+            Section("Whole local Hird", -604f);
+            Button("All follow", -320f, -637f, () => OrderAll(PartyStance.Follow), 140f);
+            Button("All hold", -160f, -637f, () => OrderAll(PartyStance.Hold), 140f);
+            Button("All retreat", 0f, -637f, () => OrderAll(PartyStance.Fallback), 140f);
+            Button("Formation", 160f, -637f, CycleFormation, 140f);
+            Button("Combat stance", 320f, -637f, CycleCombatStance, 140f);
 
-            Button("Combat stance", -90f, -665f, CycleCombatStance, 160f);
-            Button("Close", 110f, -665f, Close, 160f);
+            Section("Cleanup", -682f);
+            Button("DISBAND ALL HIRD", -240f, -721f, DisbandAllHird, 220f, 40f);
+            Button("DESPAWN TEST UNITS", 0f, -721f, DespawnTestUnits, 220f, 40f);
+            Button("Close", 240f, -721f, Close, 180f, 40f);
+            Label("Despawn removes only units created by this panel. Disband releases your entire local Hird.",
+                -405f, -772f, 14, new Color(0.78f, 0.73f, 0.63f), 810f,
+                TextAnchor.MiddleCenter, false, 24f);
         }
 
         private static void Section(string text, float y)
         {
-            Label(text, -330f, y, 18, GUIManager.Instance.ValheimOrange,
-                660f, TextAnchor.MiddleLeft, true);
+            Label(text, -405f, y, 19, GUIManager.Instance.ValheimOrange,
+                810f, TextAnchor.MiddleLeft, true);
         }
 
-        private static void Label(string text, float x, float y, int size, Color colour,
+        private static void FieldLabel(string text, float x, float y)
+        {
+            Label(text, x - 120f, y, 14, new Color(0.82f, 0.75f, 0.62f),
+                240f, TextAnchor.MiddleLeft, true);
+        }
+
+        private static GameObject Label(string text, float x, float y, int size, Color colour,
             float width, TextAnchor alignment, bool bold, float height = 30f)
         {
             var go = GUIManager.Instance.CreateText(text, _panel.transform,
@@ -156,35 +182,86 @@ namespace VikingSettlements.Development
                 bold ? GUIManager.Instance.AveriaSerifBold : GUIManager.Instance.AveriaSerif,
                 size, colour, true, Color.black, width, height, false);
             go.GetComponent<Text>().alignment = alignment;
+            return go;
         }
 
-        private static void Button(string text, float x, float y, Action action, float width = 150f)
+        private static void Button(string text, float x, float y, Action action,
+            float width = 150f, float height = 34f)
         {
             var go = GUIManager.Instance.CreateButton(text, _panel.transform,
                 new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
-                new Vector2(x, y), width, 32f);
+                new Vector2(x, y), width, height);
             go.GetComponent<Button>().onClick.AddListener(() => action());
         }
 
-        private static string StatusText()
+        private static void DropDown(string[] options, int value, float x, float y,
+            Action<int> changed)
         {
-            var player = Player.m_localPlayer;
-            var loaded = Candidates().Count;
+            var go = GUIManager.Instance.CreateDropDown(_panel.transform,
+                new Vector2(0.5f, 1f), new Vector2(0.5f, 1f),
+                new Vector2(x, y), 16, 240f, 36f);
+            var dropdown = go.GetComponent<Dropdown>();
+            dropdown.ClearOptions();
+            dropdown.AddOptions(options.ToList());
+            dropdown.value = Mathf.Clamp(value, 0, options.Length - 1);
+            dropdown.RefreshShownValue();
+            dropdown.onValueChanged.AddListener(next =>
+            {
+                changed(next);
+                RefreshPreview();
+            });
+        }
+
+        private static string[] JobNames()
+        {
+            var names = new string[SettlerRecruitable.JobCount];
+            for (var i = 0; i < names.Length; i++)
+            {
+                names[i] = Localization.instance.Localize(
+                    SettlerRecruitable.JobToken((SettlerJob)i));
+            }
+            return names;
+        }
+
+        private static void RefreshPreview()
+        {
+            if (_previewText != null) _previewText.text = SpawnPreview();
+        }
+
+        private static string SpawnPreview()
+        {
+            var state = States[Mathf.Clamp(_stateIndex, 0, States.Length - 1)];
+            var job = state == SettlerState.Assigned
+                ? JobNames()[Mathf.Clamp(_jobIndex, 0, SettlerRecruitable.JobCount - 1)]
+                : "no settlement job";
+            return $"Next: {Counts[_countIndex]} × {LevelNames[_levelIndex]} {UnitNames[_unitIndex]}\n"
+                + $"{StateNames[_stateIndex]} • {KitNames[_kitIndex]} • {job}";
+        }
+
+        private static string WorldStatus()
+        {
+            var units = Candidates();
+            var test = units.Count(unit => unit.IsTestSpawned);
+            var hird = units.Count(unit => unit.State == SettlerState.Following
+                && unit.GetComponent<PartyMember>()?.IsActiveMember == true);
+            return $"Loaded controllable: {units.Count}    Test-spawned: {test}    Local Hird: {hird}    "
+                + $"Formation: {PartySystem.Formation}    Combat: {PartySystem.CombatStance}";
+        }
+
+        private static string SelectedStatus()
+        {
             if (_selected == null)
             {
-                return $"Host authority: YES    Loaded controllable units: {loaded}\n"
-                    + "Selected: none — use Nearest, Previous/Next, or spawn a unit.";
+                return "None selected — choose Nearest/Previous/Next or spawn a unit.";
             }
             var view = _selected.GetComponent<ZNetView>();
-            var member = _selected.GetComponent<PartyMember>();
             var owner = view != null && view.IsValid() ? view.GetZDO().GetOwner() : 0L;
-            var distance = player != null
-                ? Vector3.Distance(player.transform.position, _selected.transform.position) : 0f;
-            var hird = member != null && member.IsActiveMember
-                ? $"{member.Stance}/{member.CombatStance}/{member.Formation}" : "no";
-            return $"Host authority: YES    Loaded controllable units: {loaded}\n"
-                + $"Selected: {_selected.GetHoverName()}  {_selected.State}/{_selected.Job}  "
-                + $"distance {distance:0.0}m  ZDO owner {owner}  Hird {hird}";
+            var distance = Player.m_localPlayer != null
+                ? Vector3.Distance(Player.m_localPlayer.transform.position, _selected.transform.position) : 0f;
+            var tag = _selected.IsTestSpawned ? "TEST" : "WORLD";
+            return $"{tag} • {_selected.GetHoverName()} • Level {_selected.Level} "
+                + $"({_selected.Level - 1} stars) • {_selected.State}/{_selected.Job} • "
+                + $"{distance:0.0}m • ZDO owner {owner}";
         }
 
         private static List<SettlerRecruitable> Candidates()
@@ -198,6 +275,76 @@ namespace VikingSettlements.Development
                 .ToList();
         }
 
+        private static void SpawnConfigured()
+        {
+            var player = Player.m_localPlayer;
+            if (!TestAuthority.IsHost || player == null) return;
+            var state = States[_stateIndex];
+            var settlement = state == SettlerState.Assigned
+                ? PlayerSettlement.FindOwnedContaining(player.transform.position, player.GetPlayerID()) : null;
+            if (state == SettlerState.Assigned && settlement == null)
+            {
+                player.Message(MessageHud.MessageType.Center,
+                    "Stand inside a Hearthstone you founded before spawning assigned settlers.");
+                return;
+            }
+
+            var prefabName = _unitIndex == 1 ? SettlerPrefabs.Seer : SettlerPrefabs.Settler;
+            var prefab = PrefabManager.Instance.GetPrefab(prefabName);
+            if (prefab == null) return;
+            var count = Counts[_countIndex];
+            for (var i = 0; i < count; i++)
+            {
+                var position = SpawnPosition(player, i, count);
+                var gameObject = UnityEngine.Object.Instantiate(prefab, position,
+                    Quaternion.LookRotation(-player.transform.forward, Vector3.up));
+                var unit = gameObject.GetComponent<SettlerRecruitable>();
+                if (unit == null) continue;
+                unit.MarkTestSpawned(Levels[_levelIndex]);
+                unit.ConfigureForTest(player, state, settlement);
+                if (state == SettlerState.Assigned)
+                {
+                    unit.SetJob((SettlerJob)_jobIndex);
+                }
+                ApplyKit(unit.GetComponent<SettlerEquipment>(), _kitIndex);
+                _selected = unit;
+            }
+            Rebuild();
+        }
+
+        private static Vector3 SpawnPosition(Player player, int index, int count)
+        {
+            const int columns = 5;
+            var row = index / columns;
+            var columnCount = Mathf.Min(columns, count - row * columns);
+            var column = index % columns;
+            var sideways = column - (columnCount - 1) * 0.5f;
+            var position = player.transform.position
+                + player.transform.forward * (5f + row * 2.5f)
+                + player.transform.right * (sideways * 2.2f);
+            if (ZoneSystem.instance != null)
+            {
+                position.y = ZoneSystem.instance.GetGroundHeight(position);
+            }
+            return position;
+        }
+
+        private static void ApplyKit(SettlerEquipment equipment, int kit)
+        {
+            if (equipment == null) return;
+            equipment.ClearTestItems();
+            string[] items;
+            switch (kit)
+            {
+                case 1: items = new[] { "SwordBronze", "ShieldBronzeBuckler", "HelmetBronze", "ArmorBronzeChest", "ArmorBronzeLegs" }; break;
+                case 2: items = new[] { "SwordIron", "ShieldIronSquare", "HelmetIron", "ArmorIronChest", "ArmorIronLegs" }; break;
+                case 3: items = new[] { "BowFineWood", "HelmetTrollLeather", "ArmorTrollLeatherChest", "ArmorTrollLeatherLegs" }; break;
+                case 4: items = new[] { "SwordBlackmetal", "ShieldBlackmetal", "HelmetPadded", "ArmorPaddedCuirass", "ArmorPaddedGreaves" }; break;
+                default: items = Array.Empty<string>(); break;
+            }
+            foreach (var item in items) equipment.SetTestItem(item);
+        }
+
         private static void SelectNearest()
         {
             var player = Player.m_localPlayer;
@@ -209,43 +356,13 @@ namespace VikingSettlements.Development
         private static void SelectRelative(int direction)
         {
             var units = Candidates();
-            if (units.Count == 0)
-            {
-                _selected = null;
-            }
+            if (units.Count == 0) _selected = null;
             else
             {
                 var index = units.IndexOf(_selected);
                 _selected = units[(index + direction + units.Count) % units.Count];
             }
             Rebuild();
-        }
-
-        private static void Spawn(SettlerState state, bool rebuild = true, int offset = 0)
-        {
-            var player = Player.m_localPlayer;
-            var prefab = PrefabManager.Instance.GetPrefab(SettlerPrefabs.Settler);
-            if (!TestAuthority.IsHost || player == null || prefab == null) return;
-            var right = Vector3.Cross(Vector3.up, player.transform.forward).normalized;
-            var position = player.transform.position + player.transform.forward * (4f + offset * 0.8f)
-                + right * ((offset % 2 == 0 ? 1f : -1f) * offset * 0.6f);
-            if (ZoneSystem.instance != null) position.y = ZoneSystem.instance.GetGroundHeight(position);
-            var gameObject = UnityEngine.Object.Instantiate(prefab, position,
-                Quaternion.LookRotation(-player.transform.forward, Vector3.up));
-            var unit = gameObject.GetComponent<SettlerRecruitable>();
-            var settlement = state == SettlerState.Assigned
-                ? PlayerSettlement.FindOwnedContaining(player.transform.position, player.GetPlayerID()) : null;
-            if (state != SettlerState.Assigned || settlement != null)
-            {
-                unit?.ConfigureForTest(player, state, settlement);
-            }
-            else
-            {
-                player.Message(MessageHud.MessageType.Center,
-                    "Build or stand inside your Hearthstone before spawning an assigned settler.");
-            }
-            _selected = unit;
-            if (rebuild) Rebuild();
         }
 
         private static void SetSelectedState(SettlerState state)
@@ -265,19 +382,9 @@ namespace VikingSettlements.Development
 
         private static void TeleportSelected()
         {
-            if (_selected == null) return;
-            var player = Player.m_localPlayer;
-            var member = _selected.GetComponent<PartyMember>();
-            member?.WarpTo(player.transform.position + player.transform.forward * 3f);
-            Rebuild();
-        }
-
-        private static void CycleJob(int direction)
-        {
-            if (_selected == null || _selected.State != SettlerState.Assigned) return;
-            var next = ((int)_selected.Job + direction + SettlerRecruitable.JobCount)
-                % SettlerRecruitable.JobCount;
-            _selected.SetJob((SettlerJob)next);
+            if (_selected == null || Player.m_localPlayer == null) return;
+            _selected.GetComponent<PartyMember>()?.WarpTo(
+                Player.m_localPlayer.transform.position + Player.m_localPlayer.transform.forward * 3f);
             Rebuild();
         }
 
@@ -289,41 +396,35 @@ namespace VikingSettlements.Development
             SettlerGearPanel.Open(selected);
         }
 
-        private static void ApplyKit(string kit)
+        private static void CycleJob(int direction)
         {
-            var equipment = _selected != null ? _selected.GetComponent<SettlerEquipment>() : null;
-            if (equipment == null) return;
-            equipment.ClearTestItems();
-            string[] items;
-            switch (kit)
-            {
-                case "bronze": items = new[] { "SwordBronze", "ShieldBronzeBuckler", "HelmetBronze", "ArmorBronzeChest", "ArmorBronzeLegs" }; break;
-                case "iron": items = new[] { "SwordIron", "ShieldIronSquare", "HelmetIron", "ArmorIronChest", "ArmorIronLegs" }; break;
-                case "archer": items = new[] { "BowFineWood", "HelmetTrollLeather", "ArmorTrollLeatherChest", "ArmorTrollLeatherLegs" }; break;
-                case "plains": items = new[] { "SwordBlackmetal", "ShieldBlackmetal", "HelmetPadded", "ArmorPaddedCuirass", "ArmorPaddedGreaves" }; break;
-                default: items = Array.Empty<string>(); break;
-            }
-            foreach (var item in items) equipment.SetTestItem(item);
+            if (_selected == null || _selected.State != SettlerState.Assigned) return;
+            var next = ((int)_selected.Job + direction + SettlerRecruitable.JobCount)
+                % SettlerRecruitable.JobCount;
+            _selected.SetJob((SettlerJob)next);
             Rebuild();
         }
 
-        private static void AddStar()
+        private static void ChangeLevel(int direction)
         {
-            var character = _selected != null ? _selected.GetComponent<Character>() : null;
-            if (character != null) character.SetLevel(Mathf.Min(3, character.GetLevel() + 1));
-            Rebuild();
-        }
-
-        private static void OrderSelected(PartyStance stance)
-        {
-            var member = _selected != null ? _selected.GetComponent<PartyMember>() : null;
-            if (member != null && member.IsActiveMember) member.SetStance(stance, Player.m_localPlayer);
+            if (_selected == null) return;
+            _selected.SetTestLevel(_selected.Level + direction);
             Rebuild();
         }
 
         private static void OrderAll(PartyStance stance)
         {
             PartySystem.TestCommandAll(Player.m_localPlayer, stance);
+            Rebuild();
+        }
+
+        private static void OrderSelected(PartyStance stance)
+        {
+            var member = _selected != null ? _selected.GetComponent<PartyMember>() : null;
+            if (member != null && member.IsActiveMember)
+            {
+                member.SetStance(stance, Player.m_localPlayer);
+            }
             Rebuild();
         }
 
@@ -339,14 +440,34 @@ namespace VikingSettlements.Development
             Rebuild();
         }
 
+        private static void DisbandAllHird()
+        {
+            var count = PartySystem.TestDisbandAll(Player.m_localPlayer);
+            Player.m_localPlayer?.Message(MessageHud.MessageType.Center,
+                $"Disbanded {count} Hird member{(count == 1 ? "" : "s")}.");
+            Rebuild();
+        }
+
+        private static void DespawnTestUnits()
+        {
+            var player = Player.m_localPlayer;
+            var units = Candidates().Where(unit => unit.IsTestSpawned).ToList();
+            var removed = 0;
+            foreach (var unit in units)
+            {
+                if (unit.DespawnForTest(player)) removed++;
+            }
+            _selected = null;
+            player?.Message(MessageHud.MessageType.Center,
+                $"Despawned {removed} loaded test unit{(removed == 1 ? "" : "s")}.");
+            Rebuild();
+        }
+
         private sealed class PanelBehaviour : MonoBehaviour
         {
             private void Update()
             {
-                if (Input.GetKeyDown(KeyCode.Escape) || !TestAuthority.IsHost)
-                {
-                    Close();
-                }
+                if (Input.GetKeyDown(KeyCode.Escape) || !TestAuthority.IsHost) Close();
             }
         }
     }
